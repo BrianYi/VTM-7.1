@@ -45,6 +45,7 @@
 #include "CommonLib/Rom.h"
 #include "VideoIOYuv.h"
 #include "CommonLib/Unit.h"
+#include "../App/RTMPlayer/PlayerHeader.h"
 
 using namespace std;
 
@@ -453,7 +454,7 @@ static bool verifyPlane(Pel* dst,
  * @param fileBitDepth component bit depth in file
  * @return true for success, false in case of error
  */
-static bool writePlane( uint32_t orgWidth, uint32_t orgHeight, ostream& fd, const Pel* src,
+static bool writePlane( char *ptrYUVData, uint32_t orgWidth, uint32_t orgHeight, ostream& fd, const Pel* src,
                        const bool is16bit,
                        const uint32_t stride_src,
                        uint32_t width444, uint32_t height444,
@@ -461,7 +462,8 @@ static bool writePlane( uint32_t orgWidth, uint32_t orgHeight, ostream& fd, cons
                        const ChromaFormat srcFormat,
                        const ChromaFormat fileFormat,
                        const uint32_t fileBitDepth,
-                       const uint32_t packedYUVOutputMode = 0)
+                       const uint32_t packedYUVOutputMode = 0
+                       )
 {
   const uint32_t csx_file =getComponentScaleX(compID, fileFormat);
   const uint32_t csy_file =getComponentScaleY(compID, fileFormat);
@@ -602,6 +604,13 @@ static bool writePlane( uint32_t orgWidth, uint32_t orgHeight, ostream& fd, cons
         }
 
         fd.write(reinterpret_cast<const char*>(buf), stride_file);
+        
+        if ( ptrYUVData )
+        {
+          memcpy( ptrYUVData, buf, stride_file );
+          ptrYUVData += stride_file;
+        }
+        
         if (fd.eof() || fd.fail() )
         {
           return false;
@@ -661,6 +670,13 @@ static bool writePlane( uint32_t orgWidth, uint32_t orgHeight, ostream& fd, cons
         }
 
         fd.write (reinterpret_cast<const char*>(buf), stride_file);
+        
+        if ( ptrYUVData )
+        {
+          memcpy( ptrYUVData, buf, stride_file );
+          ptrYUVData += stride_file;
+        }
+        
         if (fd.eof() || fd.fail())
         {
           return false;
@@ -695,7 +711,14 @@ static bool writePlane( uint32_t orgWidth, uint32_t orgHeight, ostream& fd, cons
           }
         }
         fd.write( reinterpret_cast<const char*>( buf ), stride_file );
-        if( fd.eof() || fd.fail() )
+        
+        if ( ptrYUVData )
+        {
+          memcpy( ptrYUVData, buf, stride_file );
+          ptrYUVData += stride_file;
+        }
+        
+        if ( fd.eof() || fd.fail() )
         {
           return false;
         }
@@ -961,7 +984,7 @@ bool VideoIOYuv::read ( PelUnitBuf& pic, PelUnitBuf& picOrg, const InputColourSp
  * @return true for success, false in case of error
  */
  // here orgWidth and orgHeight are for luma
-bool VideoIOYuv::write( uint32_t orgWidth, uint32_t orgHeight, const CPelUnitBuf& pic,
+bool VideoIOYuv::write( RtmpWindow *ptrRtmpWindow, uint32_t orgWidth, uint32_t orgHeight, const CPelUnitBuf& pic,
                         const InputColourSpaceConversion ipCSC,
                         const bool bPackedYUVOutputMode,
                         int confLeft, int confRight, int confTop, int confBottom, ChromaFormat format, const bool bClipToRec709 )
@@ -1027,6 +1050,13 @@ bool VideoIOYuv::write( uint32_t orgWidth, uint32_t orgHeight, const CPelUnitBuf
     msg( WARNING, "\nWarning: writing %d x %d luma sample output picture!", width444, height444);
   }
 
+  Frame *ptrYUVFrame = NULL;
+  if (ptrRtmpWindow)
+  {
+    ptrYUVFrame = new Frame;
+    ptrYUVFrame->size = orgWidth * orgHeight * 3 / 2;
+    ptrYUVFrame->data = ( char * ) malloc( ptrYUVFrame->size );
+  }
   for(uint32_t comp=0; retval && comp < ::getNumberValidComponents(format); comp++)
   {
     const ComponentID compID      = ComponentID(comp);
@@ -1035,13 +1065,26 @@ bool VideoIOYuv::write( uint32_t orgWidth, uint32_t orgHeight, const CPelUnitBuf
     const uint32_t    csy         = ::getComponentScaleY(compID, format);
     const CPelBuf     area        = picO.get(compID);
     const int         planeOffset = (confLeft >> csx) + (confTop >> csy) * area.stride;
-    if( !writePlane( orgWidth, orgHeight, m_cHandle, area.bufAt( 0, 0 ) + planeOffset, is16bit, area.stride,
+    char *ptrYUVData = NULL;
+    if ( ptrRtmpWindow )
+    {
+      if ( comp == 0 )
+        ptrYUVData = ptrYUVFrame->data;
+      else if ( comp == 1 )
+        ptrYUVData = ptrYUVFrame->data + orgWidth * orgHeight;
+      else if ( comp == 2 )
+        ptrYUVData = ptrYUVFrame->data + orgWidth * orgHeight * 5 / 4;
+    }
+    if( !writePlane( ptrYUVData, orgWidth, orgHeight, m_cHandle, area.bufAt( 0, 0 ) + planeOffset, is16bit, area.stride,
                      width444, height444, compID, picO.chromaFormat, format, m_fileBitdepth[ch],
-                     bPackedYUVOutputMode ? 1 : 0))
+                     bPackedYUVOutputMode ? 1 : 0 ))
     {
       retval = false;
     }
   }
+
+  if ( ptrRtmpWindow )
+    PostMessage( ptrRtmpWindow->win(), WM_NEW_YUV_FRAME, ( WPARAM ) ptrYUVFrame, 0 );
 
   return retval;
 }
@@ -1219,7 +1262,7 @@ void VideoIOYuv::ColourSpaceConvert(const CPelUnitBuf &src, PelUnitBuf &dest, co
   }
 }
 
-bool VideoIOYuv::writeUpscaledPicture( const SPS& sps, const PPS& pps, const CPelUnitBuf& pic, const InputColourSpaceConversion ipCSC, const bool bPackedYUVOutputMode, int outputChoice, ChromaFormat format, const bool bClipToRec709 )
+bool VideoIOYuv::writeUpscaledPicture( RtmpWindow* ptrRtmpWindow, const SPS& sps, const PPS& pps, const CPelUnitBuf& pic, const InputColourSpaceConversion ipCSC, const bool bPackedYUVOutputMode, int outputChoice, ChromaFormat format, const bool bClipToRec709 )
 {
   ChromaFormat chromaFormatIDC = sps.getChromaFormatIdc();
   bool ret = false;
@@ -1233,7 +1276,7 @@ bool VideoIOYuv::writeUpscaledPicture( const SPS& sps, const PPS& pps, const CPe
       const Window conf;
       Picture::rescalePicture( pic, pps.getConformanceWindow(), upscaledPic, conf, chromaFormatIDC, sps.getBitDepths(), false );
 
-      ret = write( sps.getMaxPicWidthInLumaSamples(), sps.getMaxPicHeightInLumaSamples(), upscaledPic,
+      ret = write( ptrRtmpWindow, sps.getMaxPicWidthInLumaSamples(), sps.getMaxPicHeightInLumaSamples(), upscaledPic,
         ipCSC,
         bPackedYUVOutputMode,
         conf.getWindowLeftOffset() * SPS::getWinUnitX( chromaFormatIDC ),
@@ -1246,7 +1289,7 @@ bool VideoIOYuv::writeUpscaledPicture( const SPS& sps, const PPS& pps, const CPe
     {
       const Window &conf = pps.getConformanceWindow();
 
-      ret = write( sps.getMaxPicWidthInLumaSamples(), sps.getMaxPicHeightInLumaSamples(), pic,
+      ret = write( ptrRtmpWindow, sps.getMaxPicWidthInLumaSamples(), sps.getMaxPicHeightInLumaSamples(), pic,
         ipCSC,
         bPackedYUVOutputMode,
         conf.getWindowLeftOffset() * SPS::getWinUnitX( chromaFormatIDC ),
@@ -1260,7 +1303,7 @@ bool VideoIOYuv::writeUpscaledPicture( const SPS& sps, const PPS& pps, const CPe
   {
     const Window &conf = pps.getConformanceWindow();
 
-    ret = write( pic.get( COMPONENT_Y ).width, pic.get( COMPONENT_Y ).height, pic,
+    ret = write( ptrRtmpWindow, pic.get( COMPONENT_Y ).width, pic.get( COMPONENT_Y ).height, pic,
       ipCSC,
       bPackedYUVOutputMode,
       conf.getWindowLeftOffset() * SPS::getWinUnitX( chromaFormatIDC ),

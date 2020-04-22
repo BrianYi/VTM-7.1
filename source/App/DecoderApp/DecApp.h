@@ -47,6 +47,7 @@
 #include "CommonLib/Picture.h"
 #include "DecoderLib/DecLib.h"
 #include "DecAppCfg.h"
+#include "../RTMPlayer/PlayerHeader.h"
 
 //! \ingroup DecoderApp
 //! \{
@@ -78,22 +79,22 @@ public:
   DecApp();
   virtual ~DecApp         ()  {}
 
-  uint32_t  decode            (); ///< main decoding function
+  uint32_t  decode            ( RtmpWindow *ptrRtmpWindow ); ///< main decoding function
 
 private:
   void  xCreateDecLib     (); ///< create internal classes
   void  xDestroyDecLib    (); ///< destroy internal classes
-  void  xWriteOutput      ( PicList* pcListPic , uint32_t tId); ///< write YUV to file
+  void  xWriteOutput      ( RtmpWindow* ptrRtmpWindow, PicList* pcListPic , uint32_t tId); ///< write YUV to file
 #if JVET_N0278_FIXES
-  void  xFlushOutput( PicList* pcListPic, const int layerId = NOT_VALID ); ///< flush all remaining decoded pictures to file
+  void  xFlushOutput( RtmpWindow* ptrRtmpWindow, PicList* pcListPic, const int layerId = NOT_VALID ); ///< flush all remaining decoded pictures to file
 #else
   void  xFlushOutput      ( PicList* pcListPic ); ///< flush all remaining decoded pictures to file
 #endif
   bool  isNaluWithinTargetDecLayerIdSet ( InputNALUnit* nalu ); ///< check whether given Nalu is within targetDecLayerIdSet
   bool  isNaluTheTargetLayer(InputNALUnit* nalu); ///< check whether given Nalu is within targetDecLayerIdSet
 #if JVET_P1006_PICTURE_HEADER
-  bool  isNewPicture(ifstream *bitstreamFile, class InputByteStream *bytestream);  ///< check if next NAL unit will be the first NAL unit from a new picture
-  bool  isNewAccessUnit(bool newPicture, ifstream *bitstreamFile, class InputByteStream *bytestream);  ///< check if next NAL unit will be the first NAL unit from a new access unit
+  bool  isNewPicture( RtmpWindow *ptrRtmpWindow, std::queue<InputNALUnit>& outNalUnitBuf/*ifstream *bitstreamFile, class InputByteStream *bytestream*/);  ///< check if next NAL unit will be the first NAL unit from a new picture
+  bool  isNewAccessUnit( RtmpWindow *ptrRtmpWindow, bool newPicture, std::queue<InputNALUnit>& outNalUnitBuf/*bool newPicture, ifstream *bitstreamFile, class InputByteStream *bytestream*/);  ///< check if next NAL unit will be the first NAL unit from a new access unit
 #endif
 };
 

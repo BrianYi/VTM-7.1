@@ -10,7 +10,15 @@
 #if _DEBUG
 #define DEBUG_LOCAL_VIDEO_TEST  0
 #define DEBUG_NO_ENCODING       1
+#define DEBUG_SEND_TO_MYSELF    1
 #endif
+
+// new connection, need to open a new window
+#define WM_NEW_CONNECTION		WM_USER+1
+// new online user, don't need to open a new window
+#define WM_NEW_ONLINEUSER		WM_USER+2
+#define WM_DEL_ONLINEUSER		WM_USER+3
+#define WM_NEW_YUV_FRAME    WM_USER+4
 
 class cmp
 {

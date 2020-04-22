@@ -39,11 +39,6 @@ PriorityQueue g_outputQue;
 
 static struct event_base *g_base;
 
-// new connection, need to open a new window
-#define WM_NEW_CONNECTION		WM_USER+1
-// new online user, don't need to open a new window
-#define WM_NEW_ONLINEUSER		WM_USER+2
-#define WM_DEL_ONLINEUSER		WM_USER+3
 
 static std::unordered_map<size_t, RtmpWindow*> sUnorderedMapHashParams;
 
@@ -83,7 +78,7 @@ int WINAPI WinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	wndclass.hIcon = NULL;
 	wndclass.lpszMenuName = NULL;
 	wndclass.lpszClassName = szChildClassName;
-  wndclass.hbrBackground = ( HBRUSH ) GetStockObject( WHITE_BRUSH );
+  wndclass.hbrBackground = ( HBRUSH ) GetStockObject( BLACK_BRUSH );
   if ( !RegisterClass( &wndclass ) )
 	{
 		MessageBox( NULL, TEXT( "Program requires Windows NT!" ),
@@ -128,9 +123,27 @@ MyWorkCallback(
   TCHAR szBuffer[ MAX_PACKET_SIZE ];
 	if ( flags & EV_READ )
 	{
+#if 1
+    uint64_t recvTimestamp = get_timestamp_ms();
+    RTMP_Log( RTMP_LOGDEBUG, "recv packet(%d) from %s, %dB:[%u,%u-%u], packet timestamp=%llu, recv timestamp=%llu, R-P=%llu",
+              ptrPacket->type(),
+              ptrPacket->app().c_str(),
+              MAX_PACKET_SIZE,
+              ptrPacket->size(),
+              ptrPacket->seq(),
+              ptrPacket->seq() + ptrPacket->body_size(),
+              ptrPacket->timestamp(),
+              recvTimestamp,
+              recvTimestamp - ptrPacket->timestamp() );
+#endif
+#if KEEP_TRACK_PACKET_RCV_HEX
+    RTMP_LogHexStr( RTMP_LOGDEBUG, ( uint8_t * ) &ptrPkt->raw_net_packet(), ptrPkt->packet_size() );
+#endif // _DEBUG
+
 		switch ( ptrPacket->type() )
 		{
     case Push:
+    case Fin:
     {
        assert( sUnorderedMapHashParams.count( hashVal ));
        RtmpWindow *ptrRtmpWindow = sUnorderedMapHashParams[ hashVal ];
@@ -140,8 +153,6 @@ MyWorkCallback(
     case Pull:
 			break;
 		case Ack:
-			break;
-		case Fin:
 			break;
 		case Err:
 			break;
@@ -365,8 +376,11 @@ unsigned CALLBACK thread_func_for_encoder( void *arg )
 //       ( char * ) szBuffer + i * MAX_BODY_SIZE ) );
 //   }
 
+
   CHAR *p = szBuffer, *pL = NULL;
   int numBytes = 0;
+  RtmpWindow *ptrRtmpWindow = ( RtmpWindow * )arg;
+  //ptrRtmpWindow->pri_queue().push( PacketUtils::new_packet( *ptrPacket ) );
   for(DWORD k = 0; k < dwFileSize; ++k )
   {
     if ( ( *p == 1 && k >= 2 ) && ( !*( p - 1 ) && !*( p - 2 ) ) )
@@ -382,22 +396,33 @@ unsigned CALLBACK thread_func_for_encoder( void *arg )
         size_t numPack = NUM_PACK( frameSize );
         for ( size_t i = 0; i < numPack; ++i )
         {
+#if DEBUG_SEND_TO_MYSELF
+          ptrRtmpWindow->pri_queue().push( PacketUtils::new_push_packet(
+            ( uint32_t ) frameSize, i != numPack - 1,
+            ( uint32_t ) i * MAX_BODY_SIZE,
+            get_timestamp_ms(),
+            g_app,
+            ( char * ) pL + i * MAX_BODY_SIZE ) );
+#else
           SubmitWork( EV_WRITE, PacketUtils::push_packet(
             ( uint32_t ) frameSize, i != numPack - 1,
             ( uint32_t ) i * MAX_BODY_SIZE,
             get_timestamp_ms(),
             g_app,
             ( char * ) pL + i * MAX_BODY_SIZE ) );
+#endif
         }
-        msleep( 1000 / 10 );
+        msleep( 1000 / 25 );
       }
       pL = p + 1;
     }
     p++;
   }
+  ptrRtmpWindow->pri_queue().push( PacketUtils::new_fin_packet( get_timestamp_ms(), g_app ) );
+  //SubmitWork( EV_WRITE, PacketUtils::fin_packet( get_timestamp_ms(), g_app ) );
 
   free( szBuffer );
-
+  Sleep( 999999999 );
 #else
   int argc = 5;
   const char *argv[ 5 ] = {
@@ -825,6 +850,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	static HANDLE hDispatcherThread;
 	TCHAR szBuffer[ 256 ];
 	HMENU hMenu = GetMenu( hWnd );
+  static int cxClient, cyClient;
   switch ( message )
 	{
 	case WM_CREATE:
@@ -884,7 +910,12 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		break;
 	}
 	case WM_SIZE:
+  {
+    cxClient = LOWORD( lParam );
+    cyClient = HIWORD( lParam );
+
 		break;
+  }
 	case WM_NEW_ONLINEUSER:
 	{
 		HMENU hMenuView = GetSubMenu( hMenu, 0 );
@@ -930,7 +961,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
       else break;
     }
     // receive Accept
-    ptrRtmpWindow->set_win( CreateWindow( szChildClassName, ptrRtmpWindow->app().c_str(), WS_CHILDWINDOW | WS_VISIBLE,
+    ptrRtmpWindow->set_win( CreateWindow( szChildClassName, ptrRtmpWindow->app().c_str(), WS_CHILDWINDOW | WS_VISIBLE | WS_BORDER,
                                           0, 0, 0, 0,
                                           hWnd, ( HMENU ) uuid64(),
                                           ( HINSTANCE ) GetWindowLongPtr( hWnd, GWLP_HINSTANCE ), NULL ) );
@@ -939,7 +970,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
     if ( !g_bIsEncoding )
     {
       g_bIsEncoding = TRUE;
-      g_hEncoderThread = (HANDLE)_beginthreadex( NULL, 0, thread_func_for_encoder, NULL, 0, NULL );
+      g_hEncoderThread = (HANDLE)_beginthreadex( NULL, 0, thread_func_for_encoder, ptrRtmpWindow, 0, NULL );
     }
     break;
 	}
@@ -1025,25 +1056,10 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	return DefWindowProc( hWnd, message, wParam, lParam );
 }
 
-HBITMAP NextFrame( HDC hdc, HANDLE hFile, DWORD dwWidth, DWORD dwHeight )
+HBITMAP YUVtoBitmap(HDC hdc, BYTE *pYUVData, DWORD dwWidth, DWORD dwHeight)
 {
-  if ( hFile == INVALID_HANDLE_VALUE )
-    return NULL;
-
-  DWORD dwNumberOfBytesRead = 0;
-  DWORD dwReadSize = dwWidth * dwHeight * 3 / 2;
-
-  BYTE *pBuffer = ( BYTE * ) malloc( dwReadSize );
-
-  BOOL bSuccess = ReadFile( hFile, pBuffer, dwReadSize, &dwNumberOfBytesRead, 0 );
-  if ( dwReadSize != dwNumberOfBytesRead )
-  {
-    CloseHandle( hFile );
-    return NULL;
-  }
-
-  BYTE *pY = pBuffer;
-  BYTE *pCb = pBuffer + dwWidth * dwHeight;
+  BYTE *pY = pYUVData;
+  BYTE *pCb = pYUVData + dwWidth * dwHeight;
   BYTE *pCr = pCb + dwWidth * dwHeight / 4;
 
   DWORD *pRGBArry = ( DWORD * ) malloc( dwWidth * dwHeight * sizeof DWORD );
@@ -1061,9 +1077,9 @@ HBITMAP NextFrame( HDC hdc, HANDLE hFile, DWORD dwWidth, DWORD dwHeight )
       Cb = pCb[ ( y / 2 ) * ( dwWidth / 2 ) + ( x / 2 ) ];
       Cr = pCr[ ( y / 2 ) * ( dwWidth / 2 ) + ( x / 2 ) ];
       // r,g,b
-      r = int( Y + 1.402 * ( Cr - 128 ));
-      g = int(Y - ( 0.344 * ( Cb - 128 ) ) - ( 0.714 * ( Cr - 128 ) ));
-      b = int( Y + 1.772 * ( Cb - 128 ));
+      r = int( Y + 1.402 * ( Cr - 128 ) );
+      g = int( Y - ( 0.344 * ( Cb - 128 ) ) - ( 0.714 * ( Cr - 128 ) ) );
+      b = int( Y + 1.772 * ( Cb - 128 ) );
       // clamp
       r = min( max( 0, r ), 255 );
       g = min( max( 0, g ), 255 );
@@ -1088,10 +1104,30 @@ HBITMAP NextFrame( HDC hdc, HANDLE hFile, DWORD dwWidth, DWORD dwHeight )
   HDC hdcMem = CreateCompatibleDC( hdc );
   SelectObject( hdcMem, hBitmap );
   SetDIBits( hdcMem, hBitmap, 0, dwHeight, pRGBArry, &bmi, 0 );
-  free( pBuffer );
+  //free( pBuffer );
   free( pRGBArry );
   DeleteDC( hdcMem );
   return hBitmap;
+}
+
+HBITMAP NextFrame( HDC hdc, HANDLE hFile, DWORD dwWidth, DWORD dwHeight )
+{
+  if ( hFile == INVALID_HANDLE_VALUE )
+    return NULL;
+
+  DWORD dwNumberOfBytesRead = 0;
+  DWORD dwReadSize = dwWidth * dwHeight * 3 / 2;
+
+  BYTE *pBuffer = ( BYTE * ) malloc( dwReadSize );
+
+  BOOL bSuccess = ReadFile( hFile, pBuffer, dwReadSize, &dwNumberOfBytesRead, 0 );
+  if ( dwReadSize != dwNumberOfBytesRead )
+  {
+    CloseHandle( hFile );
+    return NULL;
+  }
+
+  return YUVtoBitmap( hdc, pBuffer, dwWidth, dwHeight );
 }
 
 LRESULT CALLBACK ChildWndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
@@ -1135,6 +1171,17 @@ LRESULT CALLBACK ChildWndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
     hDecoderThread = (HANDLE)_beginthreadex( NULL, 0, thread_func_for_decoder, ptrRtmpWindow, 0, NULL );
 		break;
 	}
+  case WM_NEW_YUV_FRAME:
+  {
+    Frame *ptrYUVFrame = ( Frame * ) wParam;
+    HDC hdc = GetDC( hWnd );
+    hBitmap = YUVtoBitmap( hdc, ( BYTE* ) ptrYUVFrame->data, dwWidth, dwHeight );
+    ReleaseDC( hWnd, hdc );
+    InvalidateRect( hWnd, NULL, FALSE );
+    free( ptrYUVFrame->data );
+    delete ptrYUVFrame;
+    break;
+  }
   case WM_TIMER:
   {
 #if DEBUG_LOCAL_VIDEO_TEST
@@ -1154,7 +1201,6 @@ LRESULT CALLBACK ChildWndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
   case WM_PAINT:
   {
     hdc = BeginPaint( hWnd, &ps );
-#if DEBUG_LOCAL_VIDEO_TEST
     HDC hdcMem = CreateCompatibleDC( hdc );
     SelectObject( hdcMem, hBitmap );
     BitBlt( hdc,
@@ -1163,7 +1209,6 @@ LRESULT CALLBACK ChildWndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
             dwWidth, dwHeight,
             hdcMem, 0, 0, SRCCOPY );
     DeleteDC( hdcMem );
-#endif
     EndPaint( hWnd, &ps );
     break;
   }

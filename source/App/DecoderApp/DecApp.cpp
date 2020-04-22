@@ -47,7 +47,71 @@
 #include "CommonLib/CodingStatistics.h"
 #endif
 #include "CommonLib/dtrace_codingstruct.h"
+#include "../RTMPlayer/PlayerHeader.h"
+#include "RtmpUtils/Log.h"
 
+/*
+ * 获取下一帧nalu
+ */
+InputNALUnit get_next_nalu( RtmpWindow* ptrRtmpWindow )
+{
+  InputNALUnit nalu;
+  nalu.m_nalUnitType = NAL_UNIT_INVALID;
+  Frame frame;
+  uint32_t totalSize = 0;
+  memset( &frame, 0, sizeof( Frame ) );
+  PriorityQueue& priQue = ptrRtmpWindow->pri_queue();
+  while ( !ptrRtmpWindow->destroyed() )
+  {
+    if ( priQue.empty() )
+    {
+      msleep( 10 );
+      continue;
+    }
+    // combine packet
+    Packet* ptrPacket = priQue.top();
+    priQue.pop();
+
+    if ( ptrPacket->type() == Fin )
+    {
+      ptrRtmpWindow->set_destroyed();
+      break;
+    }
+
+    if ( ptrPacket->seq() == 0 ) // first packet
+    {
+      if ( frame.data )
+      {
+        free( frame.data );
+        memset( &frame, 0, sizeof( Frame ) );
+      }
+      //frame.type = TypeData;
+      frame.timestamp = ptrPacket->timestamp();
+      frame.size = ptrPacket->size();
+      frame.data = ( char * ) malloc( frame.size );
+      totalSize = 0;
+    }
+    if ( frame.timestamp == ptrPacket->timestamp() )
+    {
+      memcpy( &frame.data[ ptrPacket->seq() ],
+              ptrPacket->body(),
+              ptrPacket->body_size() );
+      totalSize += ptrPacket->body_size();
+    }
+    else
+    {
+      RTMP_LogAndPrintf( RTMP_LOGERROR, "recv packet is incomplete %s:%d", __FUNCTION__, __LINE__ );
+    }
+    if ( totalSize == frame.size )
+    {
+      break;
+    }
+  }
+  std::vector<uint8_t>& nalUnit = nalu.getBitstream().getFifo();
+  nalUnit.insert( nalUnit.end(), frame.data, frame.data + frame.size );
+  free( frame.data );
+  return nalu;
+}
 
 //! \ingroup DecoderApp
 //! \{
@@ -73,18 +137,18 @@ DecApp::DecApp()
  - destroy internal class
  - returns the number of mismatching pictures
  */
-uint32_t DecApp::decode()
+uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
 {
   int                 poc;
   PicList* pcListPic = NULL;
 
-  ifstream bitstreamFile(m_bitstreamFileName.c_str(), ifstream::in | ifstream::binary);
-  if (!bitstreamFile)
-  {
-    EXIT( "Failed to open bitstream file " << m_bitstreamFileName.c_str() << " for reading" ) ;
-  }
-
-  InputByteStream bytestream(bitstreamFile);
+//   ifstream bitstreamFile(m_bitstreamFileName.c_str(), ifstream::in | ifstream::binary);
+//   if (!bitstreamFile)
+//   {
+//     EXIT( "Failed to open bitstream file " << m_bitstreamFileName.c_str() << " for reading" ) ;
+//   }
+// 
+//   InputByteStream bytestream(bitstreamFile);
 
   if (!m_outputDecodedSEIMessagesFilename.empty() && m_outputDecodedSEIMessagesFilename!="-")
   {
@@ -116,21 +180,34 @@ uint32_t DecApp::decode()
 #endif
   bool loopFiltered = false;
 
-  while (!!bitstreamFile)
+  std::queue<InputNALUnit> outNalUnitBuf;
+  while ( !ptrRtmpWindow->destroyed()/*!!bitstreamFile*/ )
   {
 #if JVET_P1006_PICTURE_HEADER
     InputNALUnit nalu;
     nalu.m_nalUnitType = NAL_UNIT_INVALID;
 
     // determine if next NAL unit will be the first one from a new picture
-    bool bNewPicture = isNewPicture(&bitstreamFile, &bytestream);
-    bool bNewAccessUnit = bNewPicture && isNewAccessUnit( bNewPicture, &bitstreamFile, &bytestream );
+    bool bNewPicture = isNewPicture( ptrRtmpWindow, outNalUnitBuf/*&bitstreamFile, &bytestream*/);
+    bool bNewAccessUnit = bNewPicture && isNewAccessUnit( ptrRtmpWindow, bNewPicture, outNalUnitBuf/*bNewPicture, &bitstreamFile, &bytestream*/ );
     if(!bNewPicture) 
     { 
-      AnnexBStats stats = AnnexBStats();
+      //AnnexBStats stats = AnnexBStats();
 
       // find next NAL unit in stream
-      byteStreamNALUnit(bytestream, nalu.getBitstream().getFifo(), stats);
+      //byteStreamNALUnit(bytestream, nalu.getBitstream().getFifo(), stats);
+      if ( outNalUnitBuf.empty() )
+      {
+        nalu = get_next_nalu( ptrRtmpWindow );
+        if ( ptrRtmpWindow->destroyed() )
+          break;
+      }
+      else
+      {
+        nalu = outNalUnitBuf.front();
+        outNalUnitBuf.pop();
+      }
+      RTMP_Log( RTMP_LOGDEBUG, "%I64d\n", nalu.getBitstream().getFifo().size() );
       if (nalu.getBitstream().getFifo().empty())
       {
         /* this can happen if the following occur:
@@ -138,7 +215,7 @@ uint32_t DecApp::decode()
          *  - two back-to-back start_code_prefixes
          *  - start_code_prefix immediately followed by EOF
          */
-        msg( ERROR, "Warning: Attempt to decode an empty NAL unit\n");
+        msg( ( MsgLevel ) ERROR, "Warning: Attempt to decode an empty NAL unit\n");
       }
       else
       {
@@ -150,7 +227,7 @@ uint32_t DecApp::decode()
             (nalu.m_nalUnitType == NAL_UNIT_CODED_SLICE_IDR_W_RADL ||
              nalu.m_nalUnitType == NAL_UNIT_CODED_SLICE_IDR_N_LP))
         {
-          xFlushOutput(pcListPic);
+          xFlushOutput( ptrRtmpWindow, pcListPic);
         }
 
         // parse NAL unit syntax if within target decoding layer
@@ -248,9 +325,9 @@ uint32_t DecApp::decode()
 #endif
 
 
-    if( ( bNewPicture || !bitstreamFile || nalu.m_nalUnitType == NAL_UNIT_EOS ) && !m_cDecLib.getFirstSliceInSequence() )
+    if( ( bNewPicture || ptrRtmpWindow->destroyed()/*!bitstreamFile*/ || nalu.m_nalUnitType == NAL_UNIT_EOS ) && !m_cDecLib.getFirstSliceInSequence() )
     {
-      if (!loopFiltered || bitstreamFile)
+      if (!loopFiltered || !ptrRtmpWindow->destroyed()/*bitstreamFile*/)
       {
         m_cDecLib.executeLoopFilters();
         m_cDecLib.finishPicture( poc, pcListPic );
@@ -267,7 +344,7 @@ uint32_t DecApp::decode()
       }
 
     }
-    else if ( (bNewPicture || !bitstreamFile || nalu.m_nalUnitType == NAL_UNIT_EOS ) &&
+    else if ( (bNewPicture || ptrRtmpWindow->destroyed()/*!bitstreamFile*/ || nalu.m_nalUnitType == NAL_UNIT_EOS ) &&
               m_cDecLib.getFirstSliceInSequence () )
     {
       m_cDecLib.setFirstSliceInPicture (true);
@@ -318,11 +395,11 @@ uint32_t DecApp::decode()
       // write reconstruction to file
       if( bNewPicture )
       {
-        xWriteOutput( pcListPic, nalu.m_temporalId );
+        xWriteOutput( ptrRtmpWindow, pcListPic, nalu.m_temporalId );
       }
       if (nalu.m_nalUnitType == NAL_UNIT_EOS)
       {
-        xWriteOutput( pcListPic, nalu.m_temporalId );
+        xWriteOutput( ptrRtmpWindow, pcListPic, nalu.m_temporalId );
         m_cDecLib.setFirstSliceInPicture (false);
       }
       // write reconstruction to file -- for additional bumping as defined in C.5.2.3
@@ -333,7 +410,7 @@ uint32_t DecApp::decode()
 #endif
         || (nalu.m_nalUnitType >= NAL_UNIT_CODED_SLICE_IDR_W_RADL && nalu.m_nalUnitType <= NAL_UNIT_CODED_SLICE_GDR)))
       {
-        xWriteOutput( pcListPic, nalu.m_temporalId );
+        xWriteOutput( ptrRtmpWindow, pcListPic, nalu.m_temporalId );
       }
     }
 #if JVET_P1006_PICTURE_HEADER
@@ -350,7 +427,7 @@ uint32_t DecApp::decode()
 #endif
   }
 
-  xFlushOutput( pcListPic );
+  xFlushOutput( ptrRtmpWindow, pcListPic );
 
   // get the number of checksum errors
   uint32_t nRet = m_cDecLib.getNumberOfChecksumErrorsDetected();
@@ -373,7 +450,7 @@ uint32_t DecApp::decode()
 /**
  - lookahead through next NAL units to determine if current NAL unit is the first NAL unit in a new picture
  */
-bool DecApp::isNewPicture(ifstream *bitstreamFile, class InputByteStream *bytestream)
+bool DecApp::isNewPicture( RtmpWindow *ptrRtmpWindow, std::queue<InputNALUnit>& outNalUnitBuf/*ifstream *bitstreamFile, class InputByteStream *bytestream*/)
 {
   bool ret = false;
   bool finished = false;
@@ -387,20 +464,34 @@ bool DecApp::isNewPicture(ifstream *bitstreamFile, class InputByteStream *bytest
   // save stream position for backup
 #if RExt__DECODER_DEBUG_STATISTICS
   CodingStatistics::CodingStatisticsData* backupStats = new CodingStatistics::CodingStatisticsData(CodingStatistics::GetStatistics());
-  streampos location = bitstreamFile->tellg() - streampos(bytestream->GetNumBufferedBytes());
+  //streampos location = bitstreamFile->tellg() - streampos(bytestream->GetNumBufferedBytes());
 #else
-  streampos location = bitstreamFile->tellg();
+  //streampos location = bitstreamFile->tellg();
 #endif
 
   // look ahead until picture start location is determined
-  while (!finished && !!(*bitstreamFile))
+  std::queue<InputNALUnit> tmpNalUnitBuf = outNalUnitBuf;
+  while ( !finished /*&& !!(*bitstreamFile)*/ )
   {
-    AnnexBStats stats = AnnexBStats();
+    //AnnexBStats stats = AnnexBStats();
     InputNALUnit nalu;
-    byteStreamNALUnit(*bytestream, nalu.getBitstream().getFifo(), stats);
+    //byteStreamNALUnit(*bytestream, nalu.getBitstream().getFifo(), stats);
+    if ( tmpNalUnitBuf.empty() )
+    {
+      nalu = get_next_nalu( ptrRtmpWindow );
+      if ( ptrRtmpWindow->destroyed() )
+        break;
+      outNalUnitBuf.push( nalu );
+    }
+    else
+    {
+      nalu = tmpNalUnitBuf.front();
+      tmpNalUnitBuf.pop();
+    }
+
     if (nalu.getBitstream().getFifo().empty())
     {
-      msg( ERROR, "Warning: Attempt to decode an empty NAL unit\n");
+      msg( ( MsgLevel ) ERROR, "Warning: Attempt to decode an empty NAL unit\n");
     }
     else
     {
@@ -465,15 +556,15 @@ bool DecApp::isNewPicture(ifstream *bitstreamFile, class InputByteStream *bytest
   
   // restore previous stream location - minus 3 due to the need for the annexB parser to read three extra bytes
 #if RExt__DECODER_DEBUG_BIT_STATISTICS
-  bitstreamFile->clear();
-  bitstreamFile->seekg(location);
-  bytestream->reset();
+//   bitstreamFile->clear();
+//   bitstreamFile->seekg(location);
+//   bytestream->reset();
   CodingStatistics::SetStatistics(*backupStats);
   delete backupStats;
 #else
-  bitstreamFile->clear();
-  bitstreamFile->seekg(location-streamoff(3));
-  bytestream->reset();
+//   bitstreamFile->clear();
+//   bitstreamFile->seekg(location-streamoff(3));
+//   bytestream->reset();
 #endif
 
   // return TRUE if next NAL unit is the start of a new picture
@@ -483,7 +574,7 @@ bool DecApp::isNewPicture(ifstream *bitstreamFile, class InputByteStream *bytest
 /**
  - lookahead through next NAL units to determine if current NAL unit is the first NAL unit in a new access unit
  */
-bool DecApp::isNewAccessUnit( bool newPicture, ifstream *bitstreamFile, class InputByteStream *bytestream )
+bool DecApp::isNewAccessUnit( RtmpWindow *ptrRtmpWindow, bool newPicture, std::queue<InputNALUnit>& outNalUnitBuf/*bool newPicture, ifstream *bitstreamFile, class InputByteStream *bytestream*/ )
 {
   bool ret = false;
   bool finished = false;
@@ -497,20 +588,34 @@ bool DecApp::isNewAccessUnit( bool newPicture, ifstream *bitstreamFile, class In
   // save stream position for backup
 #if RExt__DECODER_DEBUG_STATISTICS
   CodingStatistics::CodingStatisticsData* backupStats = new CodingStatistics::CodingStatisticsData(CodingStatistics::GetStatistics());
-  streampos location = bitstreamFile->tellg() - streampos(bytestream->GetNumBufferedBytes());
+  //streampos location = bitstreamFile->tellg() - streampos(bytestream->GetNumBufferedBytes());
 #else
-  streampos location = bitstreamFile->tellg();
+  //streampos location = bitstreamFile->tellg();
 #endif
 
   // look ahead until access unit start location is determined
-  while (!finished && !!(*bitstreamFile))
+  std::queue<InputNALUnit> tmpNalUnitBuf = outNalUnitBuf;
+  while ( !finished && !ptrRtmpWindow->destroyed()/*&& !!(*bitstreamFile)*/ )
   {
-    AnnexBStats stats = AnnexBStats();
+    //AnnexBStats stats = AnnexBStats();
     InputNALUnit nalu;
-    byteStreamNALUnit(*bytestream, nalu.getBitstream().getFifo(), stats);
+    //byteStreamNALUnit(*bytestream, nalu.getBitstream().getFifo(), stats);
+    if ( tmpNalUnitBuf.empty() )
+    {
+      nalu = get_next_nalu( ptrRtmpWindow );
+      if ( ptrRtmpWindow->destroyed() )
+        break;
+      outNalUnitBuf.push( nalu );
+    }
+    else
+    {
+      nalu = tmpNalUnitBuf.front();
+      tmpNalUnitBuf.pop();
+    }
+
     if (nalu.getBitstream().getFifo().empty())
     {
-      msg( ERROR, "Warning: Attempt to decode an empty NAL unit\n");
+      msg( ( MsgLevel ) ERROR, "Warning: Attempt to decode an empty NAL unit\n");
     }
     else
     {
@@ -558,15 +663,15 @@ bool DecApp::isNewAccessUnit( bool newPicture, ifstream *bitstreamFile, class In
   
   // restore previous stream location
 #if RExt__DECODER_DEBUG_BIT_STATISTICS
-  bitstreamFile->clear();
-  bitstreamFile->seekg(location);
-  bytestream->reset();
+//   bitstreamFile->clear();
+//   bitstreamFile->seekg(location);
+//   bytestream->reset();
   CodingStatistics::SetStatistics(*backupStats);
   delete backupStats;
 #else
-  bitstreamFile->clear();
-  bitstreamFile->seekg(location);
-  bytestream->reset();
+//   bitstreamFile->clear();
+//   bitstreamFile->seekg(location);
+//   bytestream->reset();
 #endif
 
   // return TRUE if next NAL unit is the start of a new picture
@@ -627,7 +732,7 @@ void DecApp::xDestroyDecLib()
 /** \param pcListPic list of pictures to be written to file
     \param tId       temporal sub-layer ID
  */
-void DecApp::xWriteOutput( PicList* pcListPic, uint32_t tId )
+void DecApp::xWriteOutput( RtmpWindow* ptrRtmpWindow, PicList* pcListPic, uint32_t tId )
 {
   if (pcListPic->empty())
   {
@@ -773,7 +878,7 @@ void DecApp::xWriteOutput( PicList* pcListPic, uint32_t tId )
           if( m_upscaledOutput )
           {
 #if JVET_N0278_FIXES
-            m_cVideoIOYuvReconFile[pcPic->layerId].writeUpscaledPicture( *sps, *pcPic->cs->pps, pcPic->getRecoBuf(), m_outputColourSpaceConvert, m_packedYUVMode, m_upscaledOutput, NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
+            m_cVideoIOYuvReconFile[pcPic->layerId].writeUpscaledPicture( ptrRtmpWindow, *sps, *pcPic->cs->pps, pcPic->getRecoBuf(), m_outputColourSpaceConvert, m_packedYUVMode, m_upscaledOutput, NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
 #else
             m_cVideoIOYuvReconFile.writeUpscaledPicture( *sps, *pcPic->cs->pps, pcPic->getRecoBuf(), m_outputColourSpaceConvert, m_packedYUVMode, m_upscaledOutput, NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
 #endif
@@ -781,7 +886,7 @@ void DecApp::xWriteOutput( PicList* pcListPic, uint32_t tId )
           else
           {
 #if JVET_N0278_FIXES
-            m_cVideoIOYuvReconFile[pcPic->layerId].write( pcPic->getRecoBuf().get( COMPONENT_Y ).width, pcPic->getRecoBuf().get( COMPONENT_Y ).height, pcPic->getRecoBuf(),
+            m_cVideoIOYuvReconFile[pcPic->layerId].write( ptrRtmpWindow, pcPic->getRecoBuf().get( COMPONENT_Y ).width, pcPic->getRecoBuf().get( COMPONENT_Y ).height, pcPic->getRecoBuf(),
 #else
             m_cVideoIOYuvReconFile.write( pcPic->getRecoBuf().get( COMPONENT_Y ).width, pcPic->getRecoBuf().get( COMPONENT_Y ).height, pcPic->getRecoBuf(),
 #endif
@@ -820,7 +925,7 @@ void DecApp::xWriteOutput( PicList* pcListPic, uint32_t tId )
 /** \param pcListPic list of pictures to be written to file
  */
 #if JVET_N0278_FIXES
-void DecApp::xFlushOutput( PicList* pcListPic, const int layerId )
+void DecApp::xFlushOutput( RtmpWindow* ptrRtmpWindow, PicList* pcListPic, const int layerId )
 #else
 void DecApp::xFlushOutput( PicList* pcListPic )
 #endif
@@ -930,7 +1035,7 @@ void DecApp::xFlushOutput( PicList* pcListPic )
           if( m_upscaledOutput )
           {
 #if JVET_N0278_FIXES
-            m_cVideoIOYuvReconFile[pcPic->layerId].writeUpscaledPicture( *sps, *pcPic->cs->pps, pcPic->getRecoBuf(), m_outputColourSpaceConvert, m_packedYUVMode, m_upscaledOutput, NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
+            m_cVideoIOYuvReconFile[pcPic->layerId].writeUpscaledPicture( ptrRtmpWindow, *sps, *pcPic->cs->pps, pcPic->getRecoBuf(), m_outputColourSpaceConvert, m_packedYUVMode, m_upscaledOutput, NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
 #else
             m_cVideoIOYuvReconFile.writeUpscaledPicture( *sps, *pcPic->cs->pps, pcPic->getRecoBuf(), m_outputColourSpaceConvert, m_packedYUVMode, m_upscaledOutput, NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
 #endif
@@ -938,7 +1043,7 @@ void DecApp::xFlushOutput( PicList* pcListPic )
           else
           {
 #if JVET_N0278_FIXES
-            m_cVideoIOYuvReconFile[pcPic->layerId].write( pcPic->getRecoBuf().get( COMPONENT_Y ).width, pcPic->getRecoBuf().get( COMPONENT_Y ).height, pcPic->getRecoBuf(),
+            m_cVideoIOYuvReconFile[pcPic->layerId].write( ptrRtmpWindow, pcPic->getRecoBuf().get( COMPONENT_Y ).width, pcPic->getRecoBuf().get( COMPONENT_Y ).height, pcPic->getRecoBuf(),
 #else
             m_cVideoIOYuvReconFile.write( pcPic->getRecoBuf().get( COMPONENT_Y ).width, pcPic->getRecoBuf().get( COMPONENT_Y ).height, pcPic->getRecoBuf(),
 #endif

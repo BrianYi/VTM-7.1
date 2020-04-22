@@ -1346,9 +1346,9 @@ bool DecLib::xDecodeSlice(InputNALUnit &nalu, int &iSkipFrame, int iPOCLastDispl
   m_apcSlicePilot->setSliceCurStartBrickIdx(0);
   m_apcSlicePilot->setSliceCurEndBrickIdx(0);
   m_apcSlicePilot->setNalUnitType(nalu.m_nalUnitType);
-  m_apcSlicePilot->setTLayer(nalu.m_temporalId);
+  m_apcSlicePilot->setTLayer( nalu.m_temporalId );
 
-  for( auto& naluTemporalId : m_accessUnitNals )
+  for ( auto& naluTemporalId : m_accessUnitNals )
   {
     if( naluTemporalId.first != NAL_UNIT_DPS
       && naluTemporalId.first != NAL_UNIT_VPS
