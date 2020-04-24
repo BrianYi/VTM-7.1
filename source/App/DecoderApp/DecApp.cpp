@@ -61,7 +61,7 @@ InputNALUnit get_next_nalu( RtmpWindow* ptrRtmpWindow )
   uint32_t totalSize = 0;
   memset( &frame, 0, sizeof( Frame ) );
   PriorityQueue& priQue = ptrRtmpWindow->pri_queue();
-  while ( !ptrRtmpWindow->destroyed() )
+  while ( !ptrRtmpWindow->lost() )
   {
     if ( priQue.empty() )
     {
@@ -74,7 +74,7 @@ InputNALUnit get_next_nalu( RtmpWindow* ptrRtmpWindow )
 
     if ( ptrPacket->type() == Fin )
     {
-      ptrRtmpWindow->set_destroyed();
+      ptrRtmpWindow->set_lost();
       break;
     }
 
@@ -141,6 +141,11 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
 {
   int                 poc;
   PicList* pcListPic = NULL;
+#if DEBUG_DOUBLE_CHECK
+  ofstream debugfile( "debug.dump", std::ios::out );
+#else
+  ofstream debugfile( "../../../../0110random/debug.dump", std::ios::out );
+#endif
 
 //   ifstream bitstreamFile(m_bitstreamFileName.c_str(), ifstream::in | ifstream::binary);
 //   if (!bitstreamFile)
@@ -179,9 +184,10 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
   bool openedReconFile = false; // reconstruction file not yet opened. (must be performed after SPS is seen)
 #endif
   bool loopFiltered = false;
+  int naluCount = 0;
 
   std::queue<InputNALUnit> outNalUnitBuf;
-  while ( !ptrRtmpWindow->destroyed()/*!!bitstreamFile*/ )
+  while ( !ptrRtmpWindow->lost()/*!!bitstreamFile*/ )
   {
 #if JVET_P1006_PICTURE_HEADER
     InputNALUnit nalu;
@@ -199,7 +205,7 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
       if ( outNalUnitBuf.empty() )
       {
         nalu = get_next_nalu( ptrRtmpWindow );
-        if ( ptrRtmpWindow->destroyed() )
+        if ( ptrRtmpWindow->lost() )
           break;
       }
       else
@@ -207,7 +213,8 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
         nalu = outNalUnitBuf.front();
         outNalUnitBuf.pop();
       }
-      RTMP_Log( RTMP_LOGDEBUG, "%I64d\n", nalu.getBitstream().getFifo().size() );
+
+      debugfile << "NALU " << ++naluCount << ":\t" << nalu.getBitstream().getFifo().size() << endl;
       if (nalu.getBitstream().getFifo().empty())
       {
         /* this can happen if the following occur:
@@ -325,9 +332,9 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
 #endif
 
 
-    if( ( bNewPicture || ptrRtmpWindow->destroyed()/*!bitstreamFile*/ || nalu.m_nalUnitType == NAL_UNIT_EOS ) && !m_cDecLib.getFirstSliceInSequence() )
+    if( ( bNewPicture || ptrRtmpWindow->lost()/*!bitstreamFile*/ || nalu.m_nalUnitType == NAL_UNIT_EOS ) && !m_cDecLib.getFirstSliceInSequence() )
     {
-      if (!loopFiltered || !ptrRtmpWindow->destroyed()/*bitstreamFile*/)
+      if (!loopFiltered || !ptrRtmpWindow->lost()/*bitstreamFile*/)
       {
         m_cDecLib.executeLoopFilters();
         m_cDecLib.finishPicture( poc, pcListPic );
@@ -344,7 +351,7 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
       }
 
     }
-    else if ( (bNewPicture || ptrRtmpWindow->destroyed()/*!bitstreamFile*/ || nalu.m_nalUnitType == NAL_UNIT_EOS ) &&
+    else if ( (bNewPicture || ptrRtmpWindow->lost()/*!bitstreamFile*/ || nalu.m_nalUnitType == NAL_UNIT_EOS ) &&
               m_cDecLib.getFirstSliceInSequence () )
     {
       m_cDecLib.setFirstSliceInPicture (true);
@@ -479,7 +486,7 @@ bool DecApp::isNewPicture( RtmpWindow *ptrRtmpWindow, std::queue<InputNALUnit>& 
     if ( tmpNalUnitBuf.empty() )
     {
       nalu = get_next_nalu( ptrRtmpWindow );
-      if ( ptrRtmpWindow->destroyed() )
+      if ( ptrRtmpWindow->lost() )
         break;
       outNalUnitBuf.push( nalu );
     }
@@ -595,7 +602,7 @@ bool DecApp::isNewAccessUnit( RtmpWindow *ptrRtmpWindow, bool newPicture, std::q
 
   // look ahead until access unit start location is determined
   std::queue<InputNALUnit> tmpNalUnitBuf = outNalUnitBuf;
-  while ( !finished && !ptrRtmpWindow->destroyed()/*&& !!(*bitstreamFile)*/ )
+  while ( !finished && !ptrRtmpWindow->lost()/*&& !!(*bitstreamFile)*/ )
   {
     //AnnexBStats stats = AnnexBStats();
     InputNALUnit nalu;
@@ -603,7 +610,7 @@ bool DecApp::isNewAccessUnit( RtmpWindow *ptrRtmpWindow, bool newPicture, std::q
     if ( tmpNalUnitBuf.empty() )
     {
       nalu = get_next_nalu( ptrRtmpWindow );
-      if ( ptrRtmpWindow->destroyed() )
+      if ( ptrRtmpWindow->lost() )
         break;
       outNalUnitBuf.push( nalu );
     }

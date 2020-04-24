@@ -36,10 +36,10 @@ inline uint64_t get_timestamp_ms()
 #endif
 }
 
-static std::atomic<uint64_t> g_u64Id = 1000;
-inline uint64_t uuid64()
+static std::atomic<uint32_t> g_u32Id = 1000;
+inline uint32_t uuid32()
 {
-  return g_u64Id++;
+  return g_u32Id++;
 }
 
 

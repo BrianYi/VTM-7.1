@@ -10,7 +10,8 @@
 #if _DEBUG
 #define DEBUG_LOCAL_VIDEO_TEST  0
 #define DEBUG_NO_ENCODING       1
-#define DEBUG_SEND_TO_MYSELF    1
+#define DEBUG_SEND_TO_MYSELF    0
+#define DEBUG_DOUBLE_CHECK      0
 #endif
 
 // new connection, need to open a new window
@@ -78,16 +79,16 @@ class RtmpWindow
   HWND fHwnd;
   std::string fApp;
   int32_t fTimebase;
-  uint64_t fMenuId;
+  uint32_t fMenuId;
   PriorityQueue fPriQue;
-  bool fDestroyed;
+  bool fLostConnection;
 public:
-  RtmpWindow( HWND win, std::string app, int32_t timebase, uint64_t menuid ):
+  RtmpWindow( HWND win, std::string app, int32_t timebase, uint32_t menuid ):
     fHwnd(win),
     fApp(app),
     fTimebase(timebase),
     fMenuId(menuid),
-    fDestroyed(false)
+    fLostConnection(false)
   {}
   ~RtmpWindow()
   {
@@ -106,8 +107,8 @@ public:
   std::string app() { return fApp; }
   void set_timebase( int32_t timebase ) { fTimebase = timebase; }
   int32_t timebase() { return fTimebase; }
-  void set_menuid( uint64_t menuid ) { fMenuId = menuid; }
-  uint64_t menuid() { return fMenuId; }
-  void set_destroyed() { fDestroyed = true; }
-  bool destroyed() { return fDestroyed; }
+  void set_menuid( uint32_t menuid ) { fMenuId = menuid; }
+  uint32_t menuid() { return fMenuId; }
+  void set_lost() { fLostConnection = true; }
+  bool lost() { return fLostConnection; }
 };
