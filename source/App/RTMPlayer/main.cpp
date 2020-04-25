@@ -3,8 +3,6 @@
 #include "EncoderApp/EncApp.h"
 #include "Utilities/program_options_lite.h"
 
-#include "DecoderApp/DecApp.h"
-#include "program_options_lite.h"
 #include "PlayerHeader.h"
 #include <event2/event.h>
 #include <event2/buffer.h>
@@ -18,6 +16,7 @@
 #include "RtmpUtils/Log.h"
 
 #include <windows.h>
+#include "RtmpWindow.h"
 
 
 #pragma comment(lib, "ws2_32.lib")
@@ -37,11 +36,17 @@ BOOL g_bIsEncoding = FALSE;
 // TODO: menu to show online user will cause potential problem
 HANDLE g_hEncoderThread;
 PriorityQueue g_outputQue;
+struct event_base *g_base;
+std::unordered_map<size_t, RtmpWindow*> g_umHashToWin;
 
-static struct event_base *g_base;
-
-
-static std::unordered_map<size_t, RtmpWindow*> sUnorderedMapHashParams;
+struct Session
+{
+  RtmpWindow *win; // don't delete it! dangerous
+  uint32_t menuid;
+  std::string app;
+  size_t hash;
+};
+std::unordered_map<size_t, Session*> g_umHashToSession;
 
 int WINAPI WinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd )
 {
@@ -112,7 +117,6 @@ int WINAPI WinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 }
 
 
-//std::mutex mx;
 VOID
 CALLBACK
 MyWorkCallback(
@@ -152,9 +156,9 @@ MyWorkCallback(
     case Push:
     case Fin:
     {
-      assert( sUnorderedMapHashParams.count( hashVal ) );
-      RtmpWindow *ptrRtmpWindow = sUnorderedMapHashParams[hashVal];
-      ptrRtmpWindow->pri_queue().push( PacketUtils::new_packet( *ptrPacket ) );
+      assert( g_umHashToWin.count( hashVal ) );
+      RtmpWindow *win = g_umHashToWin[hashVal];
+      win->pri_queue().push( PacketUtils::new_packet( *ptrPacket ) );
       break;
     }
     case Pull:
@@ -171,51 +175,93 @@ MyWorkCallback(
       std::vector<std::string> appArry = SplitString( ptrPacket->body(), "\n" );
       for ( int i = 0; i < appArry.size(); ++i )
       {
-        RtmpWindow *ptrRtmpWindow = new RtmpWindow( NULL, appArry[i], 0, uuid32() );
-        size_t hashVal = hash_value( appArry[i] );
-        sUnorderedMapHashParams.insert( std::make_pair( hashVal, ptrRtmpWindow ) );
-        PostMessage( hWndMain, WM_NEW_ONLINEUSER, hashVal, 0 );
+        // new session
+        Session *s = new Session;
+        s->app = appArry[i];
+        s->hash = hash_value( s->app );
+        s->menuid = uuid32();
+        s->win = NULL;  // create by MainWindow when receive accept or buildconnect
+
+        // insert to hash2session
+        assert( g_umHashToSession.count( s->hash ) == 0 );
+        g_umHashToSession.insert( std::make_pair( s->hash, s ) );
+
+        // notify MainWindow
+        PostMessage( hWndMain, WM_NEW_ONLINEUSER, (WPARAM)s, 0 );
       }
       break;
     }
     case NewSession:
     {
       RTMP_Log( RTMP_LOGDEBUG, "NewSession from %s", ptrPacket->app().c_str() );
-      assert( sUnorderedMapHashParams.count( hashVal ) == 0 );
-      RtmpWindow *ptrRtmpWindow = new RtmpWindow( NULL, ptrPacket->app(), 0, uuid32() );
-      sUnorderedMapHashParams.insert( std::make_pair( hashVal, ptrRtmpWindow ) );
-      PostMessage( hWndMain, WM_NEW_ONLINEUSER, hashVal, 0 );
+      // new session
+      Session *s = new Session;
+      s->app = ptrPacket->app();
+      s->hash = hash_value( s->app );
+      s->menuid = uuid32();
+      s->win = NULL;  // create by MainWindow when receive accept or buildconnect
+
+      // insert to hash2session
+      assert( g_umHashToSession.count( s->hash ) == 0 );
+      g_umHashToSession.insert( std::make_pair( s->hash, s ) );
+
+      // notify MainWindow
+      PostMessage( hWndMain, WM_NEW_ONLINEUSER, (WPARAM)s, 0 );
       break;
     }
     case LostSession:
     {
+      RTMP_Log( RTMP_LOGDEBUG, "LostSession from %s", ptrPacket->app().c_str() );
+      uint32_t menuid = 0;
+      bool atLeatDeleteOne = false;
+      if ( g_umHashToSession.count( hashVal ) )
+      {
+        Session *s = g_umHashToSession[hashVal];
+        menuid = s->menuid;
+        g_umHashToSession.erase( hashVal );
+        delete s;
+        atLeatDeleteOne = true;
+      }
+      if ( g_umHashToWin.count( hashVal ) )
+      {
+        RtmpWindow *w = g_umHashToWin[hashVal];
+        menuid = w->menuid();
+        g_umHashToWin.erase( hashVal );
+        delete w;
+        atLeatDeleteOne = true;
+      }
+      assert( atLeatDeleteOne );
+      PostMessage( hWndMain, WM_DEL_ONLINEUSER, (WPARAM)menuid, 0 );
 //       RTMP_Log( RTMP_LOGDEBUG, "LostSession from %s", ptrPacket->app().c_str() );
 //       assert( sUnorderedMapHashParams.count( hashVal ));
-// 			RtmpWindow *ptrRtmpWindow = sUnorderedMapHashParams[ hashVal ];
+// 			RtmpWindow *win = sUnorderedMapHashParams[ hashVal ];
 // 			sUnorderedMapHashParams.erase( hashVal );
-// 			PostMessage( hWndMain, WM_DEL_ONLINEUSER, ( WPARAM ) ptrRtmpWindow, 0 );
+// 			PostMessage( hWndMain, WM_DEL_ONLINEUSER, ( WPARAM ) win, 0 );
       break;
     }
     case BuildConnect:
     {
       RTMP_Log( RTMP_LOGDEBUG, "BuildConnect from %s", ptrPacket->app().c_str() );
-      assert( sUnorderedMapHashParams.count( hashVal ) );
-      RtmpWindow *ptrRtmpWindow = sUnorderedMapHashParams[hashVal];
-
-      PostMessage( hWndMain, WM_NEW_CONNECTION, (WPARAM)ptrRtmpWindow, 0 );
-
+      //assert( sUnorderedMapHashParams.count( hashVal ) );
+      //RtmpWindow *win = sUnorderedMapHashParams[hashVal];
+      //assert( g_umHashToWin.count( hashVal ) == 0 );
+      assert( g_umHashToSession.count( hashVal ) );
+      Session *s = g_umHashToSession[hashVal];
+      PostMessage( hWndMain, WM_NEW_CONNECTION, (WPARAM)s, 0 );
       break;
     }
     case Accept:
     {
       RTMP_Log( RTMP_LOGDEBUG, "Accept from %s", ptrPacket->app().c_str() );
-      assert( sUnorderedMapHashParams.count( hashVal ) );
-      RtmpWindow *ptrRtmpWindow = sUnorderedMapHashParams[hashVal];
-      ptrRtmpWindow->set_timebase( ptrPacket->timebase() );
+      //assert( sUnorderedMapHashParams.count( hashVal ) );
+      //RtmpWindow *win = sUnorderedMapHashParams[hashVal];
+      //win->set_timebase( ptrPacket->timebase() );
 
-      PostMessage( hWndMain, WM_NEW_CONNECTION, (WPARAM)ptrRtmpWindow, 1 );
+      assert( g_umHashToSession.count( hashVal ) );
+      Session *s = g_umHashToSession[hashVal];
+      PostMessage( hWndMain, WM_NEW_CONNECTION, (WPARAM)s, ptrPacket->timebase() );
 
-      //ptrRtmpWindow->app = ptrPacket->app();
+      //win->app = ptrPacket->app();
       break;
     }
     // 	case TypeNum:
@@ -386,8 +432,8 @@ unsigned CALLBACK thread_func_for_encoder( void *arg )
 
   CHAR *p = szBuffer, *pL = NULL;
   int numBytes = 0;
-  RtmpWindow *ptrRtmpWindow = (RtmpWindow *)arg;
-  //ptrRtmpWindow->pri_queue().push( PacketUtils::new_packet( *ptrPacket ) );
+  RtmpWindow *win = (RtmpWindow *)arg;
+  //win->pri_queue().push( PacketUtils::new_packet( *ptrPacket ) );
   for ( DWORD k = 0; k < dwFileSize; ++k )
   {
     if ( (*p == 1 && k >= 2) && (!*(p - 1) && !*(p - 2)) )
@@ -405,7 +451,7 @@ unsigned CALLBACK thread_func_for_encoder( void *arg )
         for ( size_t i = 0; i < numPack; ++i )
         {
 #if DEBUG_SEND_TO_MYSELF
-          ptrRtmpWindow->pri_queue().push( PacketUtils::new_push_packet(
+          win->pri_queue().push( PacketUtils::new_push_packet(
             (uint32_t)frameSize, i != numPack - 1,
             (uint32_t)i * MAX_BODY_SIZE,
             timestamp,
@@ -420,14 +466,17 @@ unsigned CALLBACK thread_func_for_encoder( void *arg )
             (char *)pL + i * MAX_BODY_SIZE ) );
 #endif
         }
-        msleep( 1000 / 25 );
+        msleep( g_timebase );
       }
       pL = p + 1;
     }
     p++;
   }
-  ptrRtmpWindow->pri_queue().push( PacketUtils::new_fin_packet( get_timestamp_ms(), g_app ) );
-  //SubmitWork( EV_WRITE, PacketUtils::fin_packet( get_timestamp_ms(), g_app ) );
+#if DEBUG_SEND_TO_MYSELF
+  win->pri_queue().push( PacketUtils::new_fin_packet( get_timestamp_ms(), g_app ) );
+#else
+  SubmitWork( EV_WRITE, PacketUtils::fin_packet( get_timestamp_ms(), g_app ) );
+#endif
 
   free( szBuffer );
 #else
@@ -704,94 +753,7 @@ unsigned CALLBACK thread_func_for_encoder( void *arg )
   return 0;
 }
 
-unsigned CALLBACK thread_func_for_decoder( void *arg )
-{
-  RTMP_Log( RTMP_LOGDEBUG, "decoder thread is start...\n" );
-  RtmpWindow* ptrRtmpWindow = (RtmpWindow*)arg;
 
-  int argc = 5;
-#if DEBUG_DOUBLE_CHECK
-  const char *argv[5] = {
-    "",
-  "-b",
-  "dec_str.bin",
-  "-o",
-  "dec_rec.yuv" };
-#else
-  const char *argv[5] = {
-  "",
-  "-b",
-  "../../../../0110random/dec_str.bin",
-  "-o",
-  "../../../../0110random/dec_rec.yuv" };
-#endif
-
-  int returnCode = EXIT_SUCCESS;
-
-  // print information
-  RTMP_Log( RTMP_LOGDEBUG, "\n" );
-  RTMP_Log( RTMP_LOGDEBUG, "VVCSoftware: VTM Decoder Version %s ", VTM_VERSION );
-  RTMP_Log( RTMP_LOGDEBUG, NVM_ONOS );
-  RTMP_Log( RTMP_LOGDEBUG, NVM_COMPILEDBY );
-  RTMP_Log( RTMP_LOGDEBUG, NVM_BITS );
-#if ENABLE_SIMD_OPT
-  std::string SIMD;
-  df::program_options_lite::Options optsSimd;
-  optsSimd.addOptions()("SIMD", SIMD, string( "" ), "");
-  df::program_options_lite::SilentReporter err;
-  df::program_options_lite::scanArgv( optsSimd, argc, (const char**)argv, err );
-  RTMP_Log( RTMP_LOGDEBUG, "[SIMD=%s] ", read_x86_extension( SIMD ) );
-#endif
-#if ENABLE_TRACING
-  RTMP_Log( RTMP_LOGDEBUG, "[ENABLE_TRACING] " );
-#endif
-  RTMP_Log( RTMP_LOGDEBUG, "\n" );
-
-  DecApp *pcDecApp = new DecApp;
-  // parse configuration
-  if ( !pcDecApp->parseCfg( argc, (char **)argv ) )
-  {
-    returnCode = EXIT_FAILURE;
-    return 0;
-  }
-
-  // starting time
-  double dResult;
-  clock_t lBefore = clock();
-
-  // call decoding function
-#ifndef _DEBUG
-  try
-  {
-#endif // !_DEBUG
-    if ( 0 != pcDecApp->decode( ptrRtmpWindow ) )
-    {
-      RTMP_Log( RTMP_LOGDEBUG, "\n\n***ERROR*** A decoding mismatch occured: signalled md5sum does not match\n" );
-      returnCode = EXIT_FAILURE;
-    }
-#ifndef _DEBUG
-  }
-  catch ( Exception &e )
-  {
-    std::cerr << e.what() << std::endl;
-    returnCode = EXIT_FAILURE;
-  }
-  catch ( const std::bad_alloc &e )
-  {
-    std::cout << "Memory allocation failed: " << e.what() << std::endl;
-    returnCode = EXIT_FAILURE;
-  }
-#endif
-
-  // ending time
-  dResult = (double)(clock() - lBefore) / CLOCKS_PER_SEC;
-  RTMP_Log( RTMP_LOGDEBUG, "\n Total Time: %12.3f sec.\n", dResult );
-
-  delete pcDecApp;
-
-  RTMP_Log( RTMP_LOGDEBUG, "decoder thread is quit.\n" );
-  return 0;
-}
 
 INT_PTR CALLBACK RequestDlgProc( HWND hDlg, UINT message,
   WPARAM wParam, LPARAM lParam )
@@ -940,35 +902,45 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
      * child window size setting
      * TODO: adjust for multiple child window
      */
-    int childWinNum = sUnorderedMapHashParams.size();
+    int childWinNum = g_umHashToWin.size();
     // caculating how much size for each child window
-    for (auto it = sUnorderedMapHashParams.begin(); it != sUnorderedMapHashParams.end(); ++it)
+    int cyChildNum = std::sqrt( childWinNum );
+    int cxChildNum = cyChildNum * cyChildNum == childWinNum ? cyChildNum : cyChildNum + 1;
+    int i = 0;
+    for (auto it = g_umHashToWin.begin(); it != g_umHashToWin.end(); ++it, ++i)
     {
-      RtmpWindow *pRtmpWindow = it->second;
-      MoveWindow( pRtmpWindow->win(), 0, 0, cxClient, cyClient, TRUE );
+      int x = i % cxChildNum;
+      int y = i / cxChildNum;
+      int rowChildNum = cxChildNum;
+      if ( y == cyChildNum - 1 )
+        rowChildNum = childWinNum - i;
+      int cxChildWin = cxClient / rowChildNum;
+      int cyChildWin = cyClient / cyChildNum;
+      RtmpWindow *w = it->second;
+      MoveWindow( w->win(), x * cxChildWin, y * cyChildWin, cxChildWin, cyChildWin, TRUE );
     }
     break;
   }
   case WM_NEW_ONLINEUSER:
   {
-    size_t hashVal = wParam;
-    assert( sUnorderedMapHashParams.count( hashVal ) );
-    RtmpWindow *ptrRtmpWindow = sUnorderedMapHashParams[hashVal];
-
+    /*
+     * WPARAM: Session*
+     */
+    Session *s = (Session *)wParam;
     HMENU hMenuView = GetSubMenu( hMenu, 0 ); 
     HMENU hMenuOnlineUsers = GetSubMenu( hMenuView, 0 );
-    AppendMenu( hMenuOnlineUsers, MF_STRING, ptrRtmpWindow->menuid(), ptrRtmpWindow->app().c_str() );
+    AppendMenu( hMenuOnlineUsers, MF_STRING, s->menuid, s->app.c_str() );
     break;
   }
   case WM_DEL_ONLINEUSER:
   {
-    RtmpWindow *ptrRtmpWindow = (RtmpWindow *)wParam;
-    DeleteMenu( hMenu, ptrRtmpWindow->menuid(), MF_BYCOMMAND );
-    if (ptrRtmpWindow )
-      delete ptrRtmpWindow;
+    /*
+     * WPARAM: menuid
+     */
+    DeleteMenu( hMenu, wParam, MF_BYCOMMAND );
 
     // no user, stop encoding
-    if ( sUnorderedMapHashParams.empty() )
+    if ( g_umHashToWin.empty() )
     {
       //TerminateThread( hDispatcherThread, 0 );
       //g_bIsEncoding = FALSE;
@@ -979,32 +951,39 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
   {
     /*
      * connection has build, you need prepare to receive and push data
-     * wParam: RtmpWindow
-     * lParam: 0: receive BuildConnect, 1: receive Accept
+     * wParam: hash_value(app)
+     * lParam: 0: receive BuildConnect, 1: receive Accept(with timebase)
      */
-    RtmpWindow *ptrRtmpWindow = (RtmpWindow *)wParam;
+    Session *s = (Session *)wParam;
+    uint32_t timebase = lParam;
     if ( lParam == 0 ) // receive BuildConnect
     {
       if ( DialogBoxParam( g_hIns, MAKEINTRESOURCE( IDD_DIALOG_REQUEST ), hWnd,
-        RequestDlgProc, ptrRtmpWindow->menuid() ) == IDOK )
+        RequestDlgProc, s->menuid ) == IDOK )
       {
-        SubmitWork( EV_WRITE, PacketUtils::accept_packet( (uint32_t)ptrRtmpWindow->app().size(), g_app, g_timebase,
-          ptrRtmpWindow->app().c_str() ) );
+        SubmitWork( EV_WRITE, PacketUtils::accept_packet( (uint32_t)s->app.size(), g_app, g_timebase,
+          s->app.c_str() ) );
       }
       else break;
     }
     // receive Accept
-    ptrRtmpWindow->set_win( CreateWindow( szChildClassName, ptrRtmpWindow->app().c_str(), WS_CHILDWINDOW | WS_VISIBLE/* | WS_BORDER*/,
+    s->win = new RtmpWindow( CreateWindow( szChildClassName, s->app.c_str(), WS_CHILDWINDOW | WS_VISIBLE/* | WS_BORDER*/,
       0, 0, 0, 0,
       hWnd, (HMENU)uuid32(),
-      (HINSTANCE)GetWindowLongPtr( hWnd, GWLP_HINSTANCE ), NULL ) );
+      (HINSTANCE)GetWindowLongPtr( hWnd, GWLP_HINSTANCE ), NULL ), s->app, timebase, s->menuid );
+    
+    // insert into connected map
+    assert( g_umHashToWin.count( s->hash ) == 0 );
+    g_umHashToWin[s->hash] = s->win;
+
+    // update main window to add new child window
     SendMessage( hWnd, WM_SIZE, 0, MAKELPARAM( cxClient, cyClient ) );
 
     // begin encoding
     if ( !g_bIsEncoding )
     {
       g_bIsEncoding = TRUE;
-      g_hEncoderThread = (HANDLE)_beginthreadex( NULL, 0, thread_func_for_encoder, ptrRtmpWindow, 0, NULL );
+      g_hEncoderThread = (HANDLE)_beginthreadex( NULL, 0, thread_func_for_encoder, s->win, 0, NULL );
     }
     break;
   }
@@ -1068,13 +1047,23 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
     /*
      * destroy child window(include threads in child window )
      */
-    for ( auto it = sUnorderedMapHashParams.begin();
-      it != sUnorderedMapHashParams.end();
+    for ( auto it = g_umHashToSession.begin();
+      it != g_umHashToSession.end();
       ++it )
     {
-      RtmpWindow *ptrRtmpWindow = it->second;
-      delete ptrRtmpWindow;
+      Session *s = it->second;
+      delete s;
     }
+    g_umHashToSession.clear();
+
+    for ( auto it = g_umHashToWin.begin();
+      it != g_umHashToWin.end();
+      ++it )
+    {
+      RtmpWindow *w = it->second;
+      delete w;
+    }
+    g_umHashToWin.clear();
 
     /*
      * stop log thread
@@ -1170,14 +1159,13 @@ HBITMAP NextFrame( HDC hdc, HANDLE hFile, DWORD cxOrigPic, DWORD cyOrigPic )
 LRESULT CALLBACK ChildWndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
 {
   static int cxClient, cyClient;
-  static HANDLE hDecoderThread;
   PAINTSTRUCT ps;
   static DWORD cxOrigPic = 832, cyOrigPic = 480;
   static DWORD cxPic, cyPic;
   static DWORD dwFrameCount;
   static HBITMAP hBitmap;
   static size_t hashVal;
-  static RtmpWindow *ptrRtmpWindow;
+  static RtmpWindow *win;
   TCHAR szBuffer[128];
   HDC hdc;
 #if DEBUG_LOCAL_VIDEO_TEST
@@ -1193,15 +1181,6 @@ LRESULT CALLBACK ChildWndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
       OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL );
     SetTimer( hWnd, 1, 1000 / 25, NULL );
 #endif
-    /*
-     * start decode thread
-     * use _beginthread, it will automatically stopping when exit
-     */
-    GetWindowText( hWnd, szBuffer, sizeof( szBuffer ) );
-    hashVal = hash_value( szBuffer );
-    assert( sUnorderedMapHashParams.count( hashVal ) );
-    ptrRtmpWindow = sUnorderedMapHashParams[hashVal];
-    hDecoderThread = (HANDLE)_beginthreadex( NULL, 0, thread_func_for_decoder, ptrRtmpWindow, 0, NULL );
     break;
   }
   case WM_NEW_YUV_FRAME:
@@ -1241,7 +1220,7 @@ LRESULT CALLBACK ChildWndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
         cxPic = cxClient;
       else
         cxPic = cxOrigPic;
-      cyPic = cxPic * (float)cyOrigPic / cxOrigPic;
+      cyPic = (DWORD)(cxPic * (float)cyOrigPic / cxOrigPic);
     }
     else
     {
@@ -1249,7 +1228,7 @@ LRESULT CALLBACK ChildWndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
         cyPic = cyClient;
       else
         cyPic = cyOrigPic;
-      cxPic = cyPic * (float)cxOrigPic / cyOrigPic;
+      cxPic = (DWORD)(cyPic * (float)cxOrigPic / cyOrigPic);
     }
 
     break;
@@ -1276,12 +1255,6 @@ LRESULT CALLBACK ChildWndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
   }
   case WM_DESTROY:
   {
-    /*
-     * stop decoder thread
-     */
-    ptrRtmpWindow->set_lost();
-    WaitForSingleObject( hDecoderThread, INFINITE );
-
 #if DEBUG_LOCAL_VIDEO_TEST
     CloseHandle( hFile );
 #endif

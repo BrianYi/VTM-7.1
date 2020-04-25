@@ -49,6 +49,7 @@
 #include "CommonLib/dtrace_codingstruct.h"
 #include "../RTMPlayer/PlayerHeader.h"
 #include "RtmpUtils/Log.h"
+#include "../RTMPlayer/RtmpWindow.h"
 
 /*
  * 获取下一帧nalu

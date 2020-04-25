@@ -21,6 +21,16 @@
 #define WM_DEL_ONLINEUSER		WM_USER+3
 #define WM_NEW_YUV_FRAME    WM_USER+4
 
+#if defined _M_IX86
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='x86' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#elif defined _M_IA64
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='ia64' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#elif defined _M_X64
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='amd64' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#else
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#endif
+
 class cmp
 {
 public:
@@ -74,41 +84,3 @@ public:
   }
 };
 
-class RtmpWindow
-{
-  HWND fHwnd;
-  std::string fApp;
-  int32_t fTimebase;
-  uint32_t fMenuId;
-  PriorityQueue fPriQue;
-  bool fLostConnection;
-public:
-  RtmpWindow( HWND win, std::string app, int32_t timebase, uint32_t menuid ):
-    fHwnd(win),
-    fApp(app),
-    fTimebase(timebase),
-    fMenuId(menuid),
-    fLostConnection(false)
-  {}
-  ~RtmpWindow()
-  {
-    DestroyWindow( fHwnd );
-    while ( !fPriQue.empty() )
-    {
-      Packet *packet = fPriQue.top();
-      fPriQue.pop();
-      delete packet;
-    }
-  }
-  PriorityQueue& pri_queue() { return fPriQue; }
-  void set_win( HWND win ) { fHwnd = win; }
-  HWND win() { return fHwnd; }
-  void set_app( std::string app ) { fApp = app; }
-  std::string app() { return fApp; }
-  void set_timebase( int32_t timebase ) { fTimebase = timebase; }
-  int32_t timebase() { return fTimebase; }
-  void set_menuid( uint32_t menuid ) { fMenuId = menuid; }
-  uint32_t menuid() { return fMenuId; }
-  void set_lost() { fLostConnection = true; }
-  bool lost() { return fLostConnection; }
-};
