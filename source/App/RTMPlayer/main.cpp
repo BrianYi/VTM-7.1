@@ -426,9 +426,11 @@ unsigned CALLBACK thread_func_for_encoder( void *arg )
     }
     p++;
   }
+#if DEBUG_SEND_TO_MYSELF
   ptrRtmpWindow->pri_queue().push( PacketUtils::new_fin_packet( get_timestamp_ms(), g_app ) );
-  //SubmitWork( EV_WRITE, PacketUtils::fin_packet( get_timestamp_ms(), g_app ) );
-
+#else
+  SubmitWork( EV_WRITE, PacketUtils::fin_packet( get_timestamp_ms(), g_app ) );
+#endif
   free( szBuffer );
 #else
   int argc = 5;
