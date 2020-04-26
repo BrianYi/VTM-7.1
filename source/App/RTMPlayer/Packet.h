@@ -130,6 +130,14 @@ public:
 	{
 		return new Packet( size, Accept, timebase, 0, 0, get_timestamp_ms(), app, body );
 	}
+  static Packet refuse_packet( const uint32_t& size, const std::string& app, const int32_t& timebase, const char* body )
+  {
+    return Packet( size, Refuse, timebase, 0, 0, get_timestamp_ms(), app, body );
+  }
+  static Packet* new_refuse_packet( const uint32_t& size, const std::string& app, const int32_t& timebase, const char* body )
+  {
+    return new Packet( size, Refuse, timebase, 0, 0, get_timestamp_ms(), app, body );
+  }
 	static Packet err_packet( const std::string& app )
 	{
 		return Packet( 0, Err, 0, 0, 0, get_timestamp_ms(), app, nullptr );

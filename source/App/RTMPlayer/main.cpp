@@ -156,9 +156,12 @@ MyWorkCallback(
     case Push:
     case Fin:
     {
-      assert( g_umHashToWin.count( hashVal ) );
-      RtmpWindow *win = g_umHashToWin[hashVal];
-      win->pri_queue().push( PacketUtils::new_packet( *ptrPacket ) );
+      if ( g_umHashToWin.count( hashVal ) )
+      {
+        RtmpWindow *win = g_umHashToWin[hashVal];
+        PriorityQueue& priQue = win->pri_queue();
+        priQue.push( PacketUtils::new_packet( *ptrPacket ) );
+      }
       break;
     }
     case Pull:
@@ -219,7 +222,7 @@ MyWorkCallback(
         Session *s = g_umHashToSession[hashVal];
         menuid = s->menuid;
         g_umHashToSession.erase( hashVal );
-        delete s;
+        //delete s;
         atLeatDeleteOne = true;
       }
       if ( g_umHashToWin.count( hashVal ) )
@@ -227,24 +230,16 @@ MyWorkCallback(
         RtmpWindow *w = g_umHashToWin[hashVal];
         menuid = w->menuid();
         g_umHashToWin.erase( hashVal );
-        delete w;
+        //delete w;
         atLeatDeleteOne = true;
       }
       assert( atLeatDeleteOne );
       PostMessage( hWndMain, WM_DEL_ONLINEUSER, (WPARAM)menuid, 0 );
-//       RTMP_Log( RTMP_LOGDEBUG, "LostSession from %s", ptrPacket->app().c_str() );
-//       assert( sUnorderedMapHashParams.count( hashVal ));
-// 			RtmpWindow *win = sUnorderedMapHashParams[ hashVal ];
-// 			sUnorderedMapHashParams.erase( hashVal );
-// 			PostMessage( hWndMain, WM_DEL_ONLINEUSER, ( WPARAM ) win, 0 );
       break;
     }
     case BuildConnect:
     {
       RTMP_Log( RTMP_LOGDEBUG, "BuildConnect from %s", ptrPacket->app().c_str() );
-      //assert( sUnorderedMapHashParams.count( hashVal ) );
-      //RtmpWindow *win = sUnorderedMapHashParams[hashVal];
-      //assert( g_umHashToWin.count( hashVal ) == 0 );
       assert( g_umHashToSession.count( hashVal ) );
       Session *s = g_umHashToSession[hashVal];
       PostMessage( hWndMain, WM_NEW_CONNECTION, (WPARAM)s, 0 );
@@ -253,15 +248,18 @@ MyWorkCallback(
     case Accept:
     {
       RTMP_Log( RTMP_LOGDEBUG, "Accept from %s", ptrPacket->app().c_str() );
-      //assert( sUnorderedMapHashParams.count( hashVal ) );
-      //RtmpWindow *win = sUnorderedMapHashParams[hashVal];
-      //win->set_timebase( ptrPacket->timebase() );
 
       assert( g_umHashToSession.count( hashVal ) );
       Session *s = g_umHashToSession[hashVal];
       PostMessage( hWndMain, WM_NEW_CONNECTION, (WPARAM)s, ptrPacket->timebase() );
 
-      //win->app = ptrPacket->app();
+      break;
+    }
+    case Refuse:
+    {
+      assert( g_umHashToSession.count( hashVal ) );
+      wsprintf( szBuffer, "%s refused your request.", ptrPacket->app().c_str() );
+      MessageBox( hWndMain, szBuffer, szAppName, MB_OK );
       break;
     }
     // 	case TypeNum:
@@ -417,23 +415,9 @@ unsigned CALLBACK thread_func_for_encoder( void *arg )
   BOOL bSuccess = ReadFile( hFile, szBuffer, dwFileSize, &dwNumberOfBytesRead, 0 );
   CloseHandle( hFile );
 
-
-  //   size_t numPack = NUM_PACK( dwFileSize );
-  //   for ( size_t i = 0; i < numPack; ++i )
-  //   {
-  //     SubmitWork( EV_WRITE, PacketUtils::push_packet(
-  //       ( uint32_t ) dwFileSize, i != numPack - 1,
-  //       ( uint32_t ) i * MAX_BODY_SIZE,
-  //       get_timestamp_ms(),
-  //       g_app,
-  //       ( char * ) szBuffer + i * MAX_BODY_SIZE ) );
-  //   }
-
-
   CHAR *p = szBuffer, *pL = NULL;
   int numBytes = 0;
   RtmpWindow *win = (RtmpWindow *)arg;
-  //win->pri_queue().push( PacketUtils::new_packet( *ptrPacket ) );
   for ( DWORD k = 0; k < dwFileSize; ++k )
   {
     if ( (*p == 1 && k >= 2) && (!*(p - 1) && !*(p - 2)) )
@@ -964,7 +948,11 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
         SubmitWork( EV_WRITE, PacketUtils::accept_packet( (uint32_t)s->app.size(), g_app, g_timebase,
           s->app.c_str() ) );
       }
-      else break;
+      else
+      {
+        SubmitWork( EV_WRITE, PacketUtils::refuse_packet( (uint32_t)s->app.size(), g_app, g_timebase,
+          s->app.c_str() ) );
+      }
     }
     // receive Accept
     s->win = new RtmpWindow( CreateWindow( szChildClassName, s->app.c_str(), WS_CHILDWINDOW | WS_VISIBLE/* | WS_BORDER*/,
