@@ -45,7 +45,7 @@
 #include "CommonLib/Rom.h"
 #include "VideoIOYuv.h"
 #include "CommonLib/Unit.h"
-#include "../App/RTMPlayer/PlayerHeader.h"
+#include "RTMPlayer/RtmpWindow.h"
 
 using namespace std;
 
@@ -1049,6 +1049,10 @@ bool VideoIOYuv::write( RtmpWindow *ptrRtmpWindow, uint32_t orgWidth, uint32_t o
   {
     msg( WARNING, "\nWarning: writing %d x %d luma sample output picture!", width444, height444);
   }
+
+  static RtmpWindow *curRtmpWindow = ptrRtmpWindow;
+  if ( curRtmpWindow != ptrRtmpWindow )
+    curRtmpWindow = ptrRtmpWindow;
 
   Frame *ptrYUVFrame = NULL;
   if (ptrRtmpWindow)

@@ -1,3 +1,5 @@
+#include "DecoderApp/DecApp.h"
+#include "program_options_lite.h"
 #include "RtmpWindow.h"
 
 unsigned CALLBACK thread_func_for_decoder( void *arg )
