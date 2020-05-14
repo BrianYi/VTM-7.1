@@ -1,0 +1,187 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\UI">
+      <UniqueIdentifier>{e83482f3-9834-4777-926a-674e5aa06aed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\UI">
+      <UniqueIdentifier>{4c18941a-75e0-4723-a303-1a532ae43fad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\UTils">
+      <UniqueIdentifier>{ab09d10d-15ca-4313-9958-6bc73a5c8abc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Utils">
+      <UniqueIdentifier>{470128f1-aece-460e-950f-1aa587ce39fa}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\DetectMemoryLeaking.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\Packet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\PlatformHeader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\PlayerHeader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\PlayerUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\source\Lib\RtmpUtils\Log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\source\App\DecoderApp\DecApp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\source\App\DecoderApp\DecAppCfg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\source\App\EncoderApp\EncApp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\source\App\EncoderApp\EncAppCfg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KHeader.h">
+      <Filter>Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="KToolbar.h">
+      <Filter>Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="KUtils.h">
+      <Filter>Header Files\UTils</Filter>
+    </ClInclude>
+    <ClInclude Include="KMutex.h">
+      <Filter>Header Files\UTils</Filter>
+    </ClInclude>
+    <ClInclude Include="KLabel.h">
+      <Filter>Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="KString.h">
+      <Filter>Header Files\UTils</Filter>
+    </ClInclude>
+    <ClInclude Include="KObject.h">
+      <Filter>Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="KMainWindow.h">
+      <Filter>Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\KRtmpWindow.h">
+      <Filter>Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="KCond.h">
+      <Filter>Header Files\UTils</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\source\App\RTMPlayer\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\source\App\RTMPlayer\Packet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\source\Lib\RtmpUtils\Log.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\source\App\DecoderApp\DecApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\source\App\DecoderApp\DecAppCfg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\source\App\EncoderApp\EncApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\source\App\EncoderApp\EncAppCfg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KToolbar.cpp">
+      <Filter>Source Files\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="stb_image.c">
+      <Filter>Source Files\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="KLabel.cpp">
+      <Filter>Source Files\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="KMutex.cpp">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="KUtils.cpp">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="KObject.cpp">
+      <Filter>Source Files\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="KMainWindow.cpp">
+      <Filter>Source Files\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\source\App\RTMPlayer\KRtmpWindow.cpp">
+      <Filter>Source Files\UI</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\source\App\RTMPlayer\RTMPlayer.aps" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\..\..\source\App\RTMPlayer\RTMPlayer.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon\player.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\..\..\..\source\App\RTMPlayer\icon\player.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_Voice_Normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_View_Normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_Share_Normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_Invite_Normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_Manage_Normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resource\Default\Res\app\conf_Wnd\toolbar_icon_chat_on_normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resource\Default\Res\app\conf_Wnd\toolbar_icon_emoji_normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_Document_Normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_More_Normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{7DD4765A-3883-4506-BEE4-4BA5EFE929C2}</ProjectGuid>
+    <RootNamespace>RTMPlayer</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\bin\vs15\msvc-19.16\x86_64\debug\</OutDir>
+    <IntDir>RTMPlayer.dir\Debug\</IntDir>
+    <TargetName>RTMPlayer</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\CommonLib\.;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\CommonLib\..;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\CommonLib\.\x86;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\CommonLib\..\libmd5;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\EncoderLib\.;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\DecoderLib\.;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\Utilities\.;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\Utilities\..;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\libevent;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\App;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\build\source\App\RTMPlayer;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\App\RTMPlayer</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;_WINDOWS;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>
+      </LanguageStandard>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalLibraryDirectories>..\..\..\..\lib\vs15\msvc-19.16\x86_64\debug;..\..\..\..\libevent;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ws2_32.lib;Comctl32.lib;event.lib;CommonLib.lib;EncoderLib.lib;DecoderLib.lib;Utilities.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\source\App\DecoderApp\DecApp.h" />
+    <ClInclude Include="..\..\..\..\source\App\DecoderApp\DecAppCfg.h" />
+    <ClInclude Include="..\..\..\..\source\App\EncoderApp\EncApp.h" />
+    <ClInclude Include="..\..\..\..\source\App\EncoderApp\EncAppCfg.h" />
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\DetectMemoryLeaking.h" />
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\Packet.h" />
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\PlatformHeader.h" />
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\PlayerHeader.h" />
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\PlayerUtils.h" />
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\resource.h" />
+    <ClInclude Include="..\..\..\..\source\App\RTMPlayer\KRtmpWindow.h" />
+    <ClInclude Include="..\..\..\..\source\Lib\RtmpUtils\Log.h" />
+    <ClInclude Include="KCond.h" />
+    <ClInclude Include="KHeader.h" />
+    <ClInclude Include="KLabel.h" />
+    <ClInclude Include="KMainWindow.h" />
+    <ClInclude Include="KMutex.h" />
+    <ClInclude Include="KString.h" />
+    <ClInclude Include="KToolbar.h" />
+    <ClInclude Include="KUtils.h" />
+    <ClInclude Include="KObject.h" />
+    <ClInclude Include="stb_image.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\source\App\DecoderApp\DecApp.cpp" />
+    <ClCompile Include="..\..\..\..\source\App\DecoderApp\DecAppCfg.cpp" />
+    <ClCompile Include="..\..\..\..\source\App\EncoderApp\EncApp.cpp" />
+    <ClCompile Include="..\..\..\..\source\App\EncoderApp\EncAppCfg.cpp" />
+    <ClCompile Include="..\..\..\..\source\App\RTMPlayer\main.cpp" />
+    <ClCompile Include="..\..\..\..\source\App\RTMPlayer\Packet.cpp" />
+    <ClCompile Include="..\..\..\..\source\App\RTMPlayer\KRtmpWindow.cpp" />
+    <ClCompile Include="..\..\..\..\source\Lib\RtmpUtils\Log.cpp" />
+    <ClCompile Include="KLabel.cpp" />
+    <ClCompile Include="KMainWindow.cpp" />
+    <ClCompile Include="KMutex.cpp" />
+    <ClCompile Include="KToolbar.cpp" />
+    <ClCompile Include="KUtils.cpp" />
+    <ClCompile Include="KObject.cpp" />
+    <ClCompile Include="stb_image.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\source\App\RTMPlayer\RTMPlayer.aps" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\..\..\source\App\RTMPlayer\RTMPlayer.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\..\..\source\App\RTMPlayer\icon\player.ico" />
+    <Image Include="icon\player.ico" />
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_Document_Normal.png" />
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_Invite_Normal.png" />
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_Manage_Normal.png" />
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_More_Normal.png" />
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_Share_Normal.png" />
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_View_Normal.png" />
+    <Image Include="resource\Default\Res\app\conf_Wnd\Icon_Toolbar_Voice_Normal.png" />
+    <Image Include="resource\Default\Res\app\conf_Wnd\toolbar_icon_chat_on_normal.png" />
+    <Image Include="resource\Default\Res\app\conf_Wnd\toolbar_icon_emoji_normal.png" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
