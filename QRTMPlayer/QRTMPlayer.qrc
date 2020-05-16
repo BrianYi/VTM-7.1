@@ -1,0 +1,15 @@
+<RCC>
+  <qresource prefix="QRTMPlayer"/>
+  <qresource prefix="/images">
+    <file alias="splash_icon_wechat_normal@2x.png">resource/Default/Res/app/login/splash_icon_wechat_normal@2x.png</file>
+    <file alias="Icon_Toolbar_Document_Normal.png">resource/Default/Res/app/conf_Wnd/Icon_Toolbar_Document_Normal.png</file>
+    <file alias="Icon_Toolbar_Invite_Normal.png">resource/Default/Res/app/conf_Wnd/Icon_Toolbar_Invite_Normal.png</file>
+    <file alias="Icon_Toolbar_Manage_Normal.png">resource/Default/Res/app/conf_Wnd/Icon_Toolbar_Manage_Normal.png</file>
+    <file alias="Icon_Toolbar_More_Normal.png">resource/Default/Res/app/conf_Wnd/Icon_Toolbar_More_Normal.png</file>
+    <file alias="Icon_Toolbar_Share_Normal.png">resource/Default/Res/app/conf_Wnd/Icon_Toolbar_Share_Normal.png</file>
+    <file alias="Icon_Toolbar_View_Normal.png">resource/Default/Res/app/conf_Wnd/Icon_Toolbar_View_Normal.png</file>
+    <file alias="Icon_Toolbar_View_Open_Normal.png">resource/Default/Res/app/conf_Wnd/Icon_Toolbar_View_Open_Normal.png</file>
+    <file alias="Icon_Toolbar_Voice_Normal.png">resource/Default/Res/app/conf_Wnd/Icon_Toolbar_Voice_Normal.png</file>
+    <file alias="Icon_Toolbar_Voice_Open_Normal.png">resource/Default/Res/app/conf_Wnd/Icon_Toolbar_Voice_Open_Normal.png</file>
+  </qresource>
+</RCC>

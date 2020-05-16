@@ -588,7 +588,7 @@ public:
         }
         break;
       default:
-        msg( ERROR, "Unknown format during print out\n");
+        msg( (MsgLevel)ERROR, "Unknown format during print out\n");
         exit(1);
         break;
     }
@@ -597,7 +597,7 @@ public:
 
   void    printSummary(const ChromaFormat chFmt, const bool printSequenceMSE, const bool printHexPsnr, const BitDepths &bitDepths, const std::string &sFilename)
   {
-    FILE* pFile = fopen (sFilename.c_str(), "at");
+    FILE* pFile = _fsopen( sFilename.c_str(), "at", _SH_DENYNO );
 
     double dFps     =   m_dFrmRate; //--CFG_KDY
     double dScale   = dFps / 1000 / (double)m_uiNumPic;
@@ -641,7 +641,7 @@ public:
         }
 
       default:
-          msg( ERROR, "Unknown format during print out\n");
+          msg( (MsgLevel)ERROR, "Unknown format during print out\n");
           exit(1);
           break;
     }

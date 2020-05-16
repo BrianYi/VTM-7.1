@@ -52,7 +52,8 @@ using namespace std;
 
 #include "CommonLib/Slice.h"
 #include "CommonLib/Picture.h"
-class RtmpWindow;
+
+class QRtmpWindow;
 /// YUV file I/O class
 class VideoIOYuv
 {
@@ -80,7 +81,7 @@ public:
   bool  read ( PelUnitBuf& pic, PelUnitBuf& picOrg, const InputColourSpaceConversion ipcsc, int aiPad[2], ChromaFormat fileFormat=NUM_CHROMA_FORMAT, const bool bClipToRec709=false );     ///< read one frame with padding parameter
 
   // If fileFormat=NUM_CHROMA_FORMAT, use the format defined by pPicYuv
-  bool  write( RtmpWindow *ptrRtmpWindow, uint32_t orgWidth, uint32_t orgHeight, const CPelUnitBuf& pic,
+  bool  write( QRtmpWindow *ptrQRtmpWindow, uint32_t orgWidth, uint32_t orgHeight, const CPelUnitBuf& pic,
                const InputColourSpaceConversion ipCSC,
                const bool bPackedYUVOutputMode,
                int confLeft = 0, int confRight = 0, int confTop = 0, int confBottom = 0, ChromaFormat format = NUM_CHROMA_FORMAT, const bool bClipToRec709 = false ); ///< write one YUV frame with padding parameter
@@ -99,7 +100,7 @@ public:
   bool  isOpen() { return m_cHandle.is_open(); }
 #endif
 
-  bool  writeUpscaledPicture( RtmpWindow* ptrRtmpWindow, const SPS& sps, const PPS& pps, const CPelUnitBuf& pic,
+  bool  writeUpscaledPicture( QRtmpWindow* ptrQRtmpWindow, const SPS& sps, const PPS& pps, const CPelUnitBuf& pic,
     const InputColourSpaceConversion ipCSC, const bool bPackedYUVOutputMode, int outputChoice = 0, ChromaFormat format = NUM_CHROMA_FORMAT, const bool bClipToRec709 = false ); ///< write one upsaled YUV frame
 
 };

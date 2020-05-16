@@ -45,7 +45,8 @@
 #include "CommonLib/Rom.h"
 #include "VideoIOYuv.h"
 #include "CommonLib/Unit.h"
-#include "RTMPlayer/RtmpWindow.h"
+
+#include "../../../../QRTMPlayer/QRtmpWindow.h"
 
 using namespace std;
 
@@ -984,7 +985,7 @@ bool VideoIOYuv::read ( PelUnitBuf& pic, PelUnitBuf& picOrg, const InputColourSp
  * @return true for success, false in case of error
  */
  // here orgWidth and orgHeight are for luma
-bool VideoIOYuv::write( RtmpWindow *ptrRtmpWindow, uint32_t orgWidth, uint32_t orgHeight, const CPelUnitBuf& pic,
+bool VideoIOYuv::write( QRtmpWindow *ptrQRtmpWindow, uint32_t orgWidth, uint32_t orgHeight, const CPelUnitBuf& pic,
                         const InputColourSpaceConversion ipCSC,
                         const bool bPackedYUVOutputMode,
                         int confLeft, int confRight, int confTop, int confBottom, ChromaFormat format, const bool bClipToRec709 )
@@ -1050,12 +1051,12 @@ bool VideoIOYuv::write( RtmpWindow *ptrRtmpWindow, uint32_t orgWidth, uint32_t o
     msg( WARNING, "\nWarning: writing %d x %d luma sample output picture!", width444, height444);
   }
 
-  static RtmpWindow *curRtmpWindow = ptrRtmpWindow;
-  if ( curRtmpWindow != ptrRtmpWindow )
-    curRtmpWindow = ptrRtmpWindow;
+  static QRtmpWindow *curQRtmpWindow = ptrQRtmpWindow;
+  if ( curQRtmpWindow != ptrQRtmpWindow )
+    curQRtmpWindow = ptrQRtmpWindow;
 
   Frame *ptrYUVFrame = NULL;
-  if (ptrRtmpWindow)
+  if (ptrQRtmpWindow)
   {
     ptrYUVFrame = new Frame;
     ptrYUVFrame->size = orgWidth * orgHeight * 3 / 2;
@@ -1070,7 +1071,7 @@ bool VideoIOYuv::write( RtmpWindow *ptrRtmpWindow, uint32_t orgWidth, uint32_t o
     const CPelBuf     area        = picO.get(compID);
     const int         planeOffset = (confLeft >> csx) + (confTop >> csy) * area.stride;
     char *ptrYUVData = NULL;
-    if ( ptrRtmpWindow )
+    if ( ptrQRtmpWindow )
     {
       if ( comp == 0 )
         ptrYUVData = ptrYUVFrame->data;
@@ -1087,8 +1088,8 @@ bool VideoIOYuv::write( RtmpWindow *ptrRtmpWindow, uint32_t orgWidth, uint32_t o
     }
   }
 
-  if ( ptrRtmpWindow )
-    PostMessage( ptrRtmpWindow->win(), WM_NEW_YUV_FRAME, ( WPARAM ) ptrYUVFrame, 0 );
+  if ( ptrQRtmpWindow )
+    ptrQRtmpWindow->SetYUV( ptrYUVFrame->data, ptrYUVFrame->size, orgWidth, orgHeight );
 
   return retval;
 }
@@ -1266,7 +1267,7 @@ void VideoIOYuv::ColourSpaceConvert(const CPelUnitBuf &src, PelUnitBuf &dest, co
   }
 }
 
-bool VideoIOYuv::writeUpscaledPicture( RtmpWindow* ptrRtmpWindow, const SPS& sps, const PPS& pps, const CPelUnitBuf& pic, const InputColourSpaceConversion ipCSC, const bool bPackedYUVOutputMode, int outputChoice, ChromaFormat format, const bool bClipToRec709 )
+bool VideoIOYuv::writeUpscaledPicture( QRtmpWindow* ptrQRtmpWindow, const SPS& sps, const PPS& pps, const CPelUnitBuf& pic, const InputColourSpaceConversion ipCSC, const bool bPackedYUVOutputMode, int outputChoice, ChromaFormat format, const bool bClipToRec709 )
 {
   ChromaFormat chromaFormatIDC = sps.getChromaFormatIdc();
   bool ret = false;
@@ -1280,7 +1281,7 @@ bool VideoIOYuv::writeUpscaledPicture( RtmpWindow* ptrRtmpWindow, const SPS& sps
       const Window conf;
       Picture::rescalePicture( pic, pps.getConformanceWindow(), upscaledPic, conf, chromaFormatIDC, sps.getBitDepths(), false );
 
-      ret = write( ptrRtmpWindow, sps.getMaxPicWidthInLumaSamples(), sps.getMaxPicHeightInLumaSamples(), upscaledPic,
+      ret = write( ptrQRtmpWindow, sps.getMaxPicWidthInLumaSamples(), sps.getMaxPicHeightInLumaSamples(), upscaledPic,
         ipCSC,
         bPackedYUVOutputMode,
         conf.getWindowLeftOffset() * SPS::getWinUnitX( chromaFormatIDC ),
@@ -1293,7 +1294,7 @@ bool VideoIOYuv::writeUpscaledPicture( RtmpWindow* ptrRtmpWindow, const SPS& sps
     {
       const Window &conf = pps.getConformanceWindow();
 
-      ret = write( ptrRtmpWindow, sps.getMaxPicWidthInLumaSamples(), sps.getMaxPicHeightInLumaSamples(), pic,
+      ret = write( ptrQRtmpWindow, sps.getMaxPicWidthInLumaSamples(), sps.getMaxPicHeightInLumaSamples(), pic,
         ipCSC,
         bPackedYUVOutputMode,
         conf.getWindowLeftOffset() * SPS::getWinUnitX( chromaFormatIDC ),
@@ -1307,7 +1308,7 @@ bool VideoIOYuv::writeUpscaledPicture( RtmpWindow* ptrRtmpWindow, const SPS& sps
   {
     const Window &conf = pps.getConformanceWindow();
 
-    ret = write( ptrRtmpWindow, pic.get( COMPONENT_Y ).width, pic.get( COMPONENT_Y ).height, pic,
+    ret = write( ptrQRtmpWindow, pic.get( COMPONENT_Y ).width, pic.get( COMPONENT_Y ).height, pic,
       ipCSC,
       bPackedYUVOutputMode,
       conf.getWindowLeftOffset() * SPS::getWinUnitX( chromaFormatIDC ),

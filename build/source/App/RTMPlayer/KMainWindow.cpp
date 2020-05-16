@@ -1,5 +1,6 @@
 #include "KHeader.h"
 #include "event2/event.h"
+#include "PlayerHeader.h"
 
 void KMainWindow::UpdateOnlineUsers()
 {

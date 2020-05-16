@@ -2270,14 +2270,14 @@ bool EncAppCfg::parseCfg( int argc, char* argv[] )
   // reading external dQP description from file
   if ( !m_dQPFileName.empty() )
   {
-    FILE* fpt=fopen( m_dQPFileName.c_str(), "r" );
+    FILE* fpt = _fsopen( m_dQPFileName.c_str(), "r", _SH_DENYNO );
     if ( fpt )
     {
       int iValue;
       int iPOC = 0;
       while ( iPOC < m_framesToBeEncoded )
       {
-        if ( fscanf(fpt, "%d", &iValue ) == EOF )
+        if ( fscanf_s(fpt, "%d", &iValue ) == EOF )
         {
           break;
         }

@@ -47,26 +47,26 @@
 #include "CommonLib/CodingStatistics.h"
 #endif
 #include "CommonLib/dtrace_codingstruct.h"
-#include "../RTMPlayer/PlayerHeader.h"
-#include "RtmpUtils/Log.h"
-#include "../RTMPlayer/RtmpWindow.h"
+#include "..\..\..\..\QRTMPlayer\Header.h"
+#include "..\..\..\..\QRTMPlayer\QRtmpWindow.h"
+#include "..\..\..\..\QRTMPlayer\Packet.h"
 
 /*
  * 获取下一帧nalu
  */
-InputNALUnit get_next_nalu( RtmpWindow* ptrRtmpWindow )
+InputNALUnit get_next_nalu( QRtmpWindow* ptrQRtmpWindow )
 {
   InputNALUnit nalu;
   nalu.m_nalUnitType = NAL_UNIT_INVALID;
   Frame frame;
   uint32_t totalSize = 0;
   memset( &frame, 0, sizeof( Frame ) );
-  PriorityQueue& priQue = ptrRtmpWindow->pri_queue();
-  while ( !ptrRtmpWindow->lost() )
+  PriorityQueue& priQue = ptrQRtmpWindow->PriQueue();
+  while ( !ptrQRtmpWindow->Lost() )
   {
     if ( priQue.empty() )
     {
-      msleep( 10 );
+      Sleep( 10 );
       continue;
     }
     // combine packet
@@ -75,7 +75,7 @@ InputNALUnit get_next_nalu( RtmpWindow* ptrRtmpWindow )
 
     if ( ptrPacket->type() == Fin )
     {
-      ptrRtmpWindow->set_lost();
+      ptrQRtmpWindow->SetLost();
       break;
     }
 
@@ -101,7 +101,7 @@ InputNALUnit get_next_nalu( RtmpWindow* ptrRtmpWindow )
     }
     else
     {
-      RTMP_LogAndPrintf( RTMP_LOGERROR, "recv packet is incomplete %s:%d", __FUNCTION__, __LINE__ );
+      printf( "recv packet is incomplete %s:%d\n", __FUNCTION__, __LINE__ );
     }
     if ( totalSize == frame.size )
     {
@@ -138,7 +138,7 @@ DecApp::DecApp()
  - destroy internal class
  - returns the number of mismatching pictures
  */
-uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
+uint32_t DecApp::decode( QRtmpWindow *ptrQRtmpWindow )
 {
   int                 poc;
   PicList* pcListPic = NULL;
@@ -188,15 +188,15 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
   int naluCount = 0;
 
   std::queue<InputNALUnit> outNalUnitBuf;
-  while ( !ptrRtmpWindow->lost()/*!!bitstreamFile*/ )
+  while ( !ptrQRtmpWindow->Lost()/*!!bitstreamFile*/ )
   {
 #if JVET_P1006_PICTURE_HEADER
     InputNALUnit nalu;
     nalu.m_nalUnitType = NAL_UNIT_INVALID;
 
     // determine if next NAL unit will be the first one from a new picture
-    bool bNewPicture = isNewPicture( ptrRtmpWindow, outNalUnitBuf/*&bitstreamFile, &bytestream*/);
-    bool bNewAccessUnit = bNewPicture && isNewAccessUnit( ptrRtmpWindow, bNewPicture, outNalUnitBuf/*bNewPicture, &bitstreamFile, &bytestream*/ );
+    bool bNewPicture = isNewPicture( ptrQRtmpWindow, outNalUnitBuf/*&bitstreamFile, &bytestream*/);
+    bool bNewAccessUnit = bNewPicture && isNewAccessUnit( ptrQRtmpWindow, bNewPicture, outNalUnitBuf/*bNewPicture, &bitstreamFile, &bytestream*/ );
     if(!bNewPicture) 
     { 
       //AnnexBStats stats = AnnexBStats();
@@ -205,8 +205,8 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
       //byteStreamNALUnit(bytestream, nalu.getBitstream().getFifo(), stats);
       if ( outNalUnitBuf.empty() )
       {
-        nalu = get_next_nalu( ptrRtmpWindow );
-        if ( ptrRtmpWindow->lost() )
+        nalu = get_next_nalu( ptrQRtmpWindow );
+        if ( ptrQRtmpWindow->Lost() )
           break;
       }
       else
@@ -235,7 +235,7 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
             (nalu.m_nalUnitType == NAL_UNIT_CODED_SLICE_IDR_W_RADL ||
              nalu.m_nalUnitType == NAL_UNIT_CODED_SLICE_IDR_N_LP))
         {
-          xFlushOutput( ptrRtmpWindow, pcListPic);
+          xFlushOutput( ptrQRtmpWindow, pcListPic);
         }
 
         // parse NAL unit syntax if within target decoding layer
@@ -333,9 +333,9 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
 #endif
 
 
-    if( ( bNewPicture || ptrRtmpWindow->lost()/*!bitstreamFile*/ || nalu.m_nalUnitType == NAL_UNIT_EOS ) && !m_cDecLib.getFirstSliceInSequence() )
+    if( ( bNewPicture || ptrQRtmpWindow->Lost()/*!bitstreamFile*/ || nalu.m_nalUnitType == NAL_UNIT_EOS ) && !m_cDecLib.getFirstSliceInSequence() )
     {
-      if (!loopFiltered || !ptrRtmpWindow->lost()/*bitstreamFile*/)
+      if (!loopFiltered || !ptrQRtmpWindow->Lost()/*bitstreamFile*/)
       {
         m_cDecLib.executeLoopFilters();
         m_cDecLib.finishPicture( poc, pcListPic );
@@ -352,7 +352,7 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
       }
 
     }
-    else if ( (bNewPicture || ptrRtmpWindow->lost()/*!bitstreamFile*/ || nalu.m_nalUnitType == NAL_UNIT_EOS ) &&
+    else if ( (bNewPicture || ptrQRtmpWindow->Lost()/*!bitstreamFile*/ || nalu.m_nalUnitType == NAL_UNIT_EOS ) &&
               m_cDecLib.getFirstSliceInSequence () )
     {
       m_cDecLib.setFirstSliceInPicture (true);
@@ -403,11 +403,11 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
       // write reconstruction to file
       if( bNewPicture )
       {
-        xWriteOutput( ptrRtmpWindow, pcListPic, nalu.m_temporalId );
+        xWriteOutput( ptrQRtmpWindow, pcListPic, nalu.m_temporalId );
       }
       if (nalu.m_nalUnitType == NAL_UNIT_EOS)
       {
-        xWriteOutput( ptrRtmpWindow, pcListPic, nalu.m_temporalId );
+        xWriteOutput( ptrQRtmpWindow, pcListPic, nalu.m_temporalId );
         m_cDecLib.setFirstSliceInPicture (false);
       }
       // write reconstruction to file -- for additional bumping as defined in C.5.2.3
@@ -418,7 +418,7 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
 #endif
         || (nalu.m_nalUnitType >= NAL_UNIT_CODED_SLICE_IDR_W_RADL && nalu.m_nalUnitType <= NAL_UNIT_CODED_SLICE_GDR)))
       {
-        xWriteOutput( ptrRtmpWindow, pcListPic, nalu.m_temporalId );
+        xWriteOutput( ptrQRtmpWindow, pcListPic, nalu.m_temporalId );
       }
     }
 #if JVET_P1006_PICTURE_HEADER
@@ -435,7 +435,7 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
 #endif
   }
 
-  xFlushOutput( ptrRtmpWindow, pcListPic );
+  xFlushOutput( ptrQRtmpWindow, pcListPic );
 
   // get the number of checksum errors
   uint32_t nRet = m_cDecLib.getNumberOfChecksumErrorsDetected();
@@ -458,7 +458,7 @@ uint32_t DecApp::decode( RtmpWindow *ptrRtmpWindow )
 /**
  - lookahead through next NAL units to determine if current NAL unit is the first NAL unit in a new picture
  */
-bool DecApp::isNewPicture( RtmpWindow *ptrRtmpWindow, std::queue<InputNALUnit>& outNalUnitBuf/*ifstream *bitstreamFile, class InputByteStream *bytestream*/)
+bool DecApp::isNewPicture( QRtmpWindow *ptrQRtmpWindow, std::queue<InputNALUnit>& outNalUnitBuf/*ifstream *bitstreamFile, class InputByteStream *bytestream*/)
 {
   bool ret = false;
   bool finished = false;
@@ -486,8 +486,8 @@ bool DecApp::isNewPicture( RtmpWindow *ptrRtmpWindow, std::queue<InputNALUnit>& 
     //byteStreamNALUnit(*bytestream, nalu.getBitstream().getFifo(), stats);
     if ( tmpNalUnitBuf.empty() )
     {
-      nalu = get_next_nalu( ptrRtmpWindow );
-      if ( ptrRtmpWindow->lost() )
+      nalu = get_next_nalu( ptrQRtmpWindow );
+      if ( ptrQRtmpWindow->Lost() )
         break;
       outNalUnitBuf.push( nalu );
     }
@@ -582,7 +582,7 @@ bool DecApp::isNewPicture( RtmpWindow *ptrRtmpWindow, std::queue<InputNALUnit>& 
 /**
  - lookahead through next NAL units to determine if current NAL unit is the first NAL unit in a new access unit
  */
-bool DecApp::isNewAccessUnit( RtmpWindow *ptrRtmpWindow, bool newPicture, std::queue<InputNALUnit>& outNalUnitBuf/*bool newPicture, ifstream *bitstreamFile, class InputByteStream *bytestream*/ )
+bool DecApp::isNewAccessUnit( QRtmpWindow *ptrQRtmpWindow, bool newPicture, std::queue<InputNALUnit>& outNalUnitBuf/*bool newPicture, ifstream *bitstreamFile, class InputByteStream *bytestream*/ )
 {
   bool ret = false;
   bool finished = false;
@@ -603,15 +603,15 @@ bool DecApp::isNewAccessUnit( RtmpWindow *ptrRtmpWindow, bool newPicture, std::q
 
   // look ahead until access unit start location is determined
   std::queue<InputNALUnit> tmpNalUnitBuf = outNalUnitBuf;
-  while ( !finished && !ptrRtmpWindow->lost()/*&& !!(*bitstreamFile)*/ )
+  while ( !finished && !ptrQRtmpWindow->Lost()/*&& !!(*bitstreamFile)*/ )
   {
     //AnnexBStats stats = AnnexBStats();
     InputNALUnit nalu;
     //byteStreamNALUnit(*bytestream, nalu.getBitstream().getFifo(), stats);
     if ( tmpNalUnitBuf.empty() )
     {
-      nalu = get_next_nalu( ptrRtmpWindow );
-      if ( ptrRtmpWindow->lost() )
+      nalu = get_next_nalu( ptrQRtmpWindow );
+      if ( ptrQRtmpWindow->Lost() )
         break;
       outNalUnitBuf.push( nalu );
     }
@@ -740,7 +740,7 @@ void DecApp::xDestroyDecLib()
 /** \param pcListPic list of pictures to be written to file
     \param tId       temporal sub-layer ID
  */
-void DecApp::xWriteOutput( RtmpWindow* ptrRtmpWindow, PicList* pcListPic, uint32_t tId )
+void DecApp::xWriteOutput( QRtmpWindow* ptrQRtmpWindow, PicList* pcListPic, uint32_t tId )
 {
   if (pcListPic->empty())
   {
@@ -886,7 +886,7 @@ void DecApp::xWriteOutput( RtmpWindow* ptrRtmpWindow, PicList* pcListPic, uint32
           if( m_upscaledOutput )
           {
 #if JVET_N0278_FIXES
-            m_cVideoIOYuvReconFile[pcPic->layerId].writeUpscaledPicture( ptrRtmpWindow, *sps, *pcPic->cs->pps, pcPic->getRecoBuf(), m_outputColourSpaceConvert, m_packedYUVMode, m_upscaledOutput, NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
+            m_cVideoIOYuvReconFile[pcPic->layerId].writeUpscaledPicture( ptrQRtmpWindow, *sps, *pcPic->cs->pps, pcPic->getRecoBuf(), m_outputColourSpaceConvert, m_packedYUVMode, m_upscaledOutput, NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
 #else
             m_cVideoIOYuvReconFile.writeUpscaledPicture( *sps, *pcPic->cs->pps, pcPic->getRecoBuf(), m_outputColourSpaceConvert, m_packedYUVMode, m_upscaledOutput, NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
 #endif
@@ -894,7 +894,7 @@ void DecApp::xWriteOutput( RtmpWindow* ptrRtmpWindow, PicList* pcListPic, uint32
           else
           {
 #if JVET_N0278_FIXES
-            m_cVideoIOYuvReconFile[pcPic->layerId].write( ptrRtmpWindow, pcPic->getRecoBuf().get( COMPONENT_Y ).width, pcPic->getRecoBuf().get( COMPONENT_Y ).height, pcPic->getRecoBuf(),
+            m_cVideoIOYuvReconFile[pcPic->layerId].write( ptrQRtmpWindow, pcPic->getRecoBuf().get( COMPONENT_Y ).width, pcPic->getRecoBuf().get( COMPONENT_Y ).height, pcPic->getRecoBuf(),
 #else
             m_cVideoIOYuvReconFile.write( pcPic->getRecoBuf().get( COMPONENT_Y ).width, pcPic->getRecoBuf().get( COMPONENT_Y ).height, pcPic->getRecoBuf(),
 #endif
@@ -933,7 +933,7 @@ void DecApp::xWriteOutput( RtmpWindow* ptrRtmpWindow, PicList* pcListPic, uint32
 /** \param pcListPic list of pictures to be written to file
  */
 #if JVET_N0278_FIXES
-void DecApp::xFlushOutput( RtmpWindow* ptrRtmpWindow, PicList* pcListPic, const int layerId )
+void DecApp::xFlushOutput( QRtmpWindow* ptrQRtmpWindow, PicList* pcListPic, const int layerId )
 #else
 void DecApp::xFlushOutput( PicList* pcListPic )
 #endif
@@ -1043,7 +1043,7 @@ void DecApp::xFlushOutput( PicList* pcListPic )
           if( m_upscaledOutput )
           {
 #if JVET_N0278_FIXES
-            m_cVideoIOYuvReconFile[pcPic->layerId].writeUpscaledPicture( ptrRtmpWindow, *sps, *pcPic->cs->pps, pcPic->getRecoBuf(), m_outputColourSpaceConvert, m_packedYUVMode, m_upscaledOutput, NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
+            m_cVideoIOYuvReconFile[pcPic->layerId].writeUpscaledPicture( ptrQRtmpWindow, *sps, *pcPic->cs->pps, pcPic->getRecoBuf(), m_outputColourSpaceConvert, m_packedYUVMode, m_upscaledOutput, NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
 #else
             m_cVideoIOYuvReconFile.writeUpscaledPicture( *sps, *pcPic->cs->pps, pcPic->getRecoBuf(), m_outputColourSpaceConvert, m_packedYUVMode, m_upscaledOutput, NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
 #endif
@@ -1051,7 +1051,7 @@ void DecApp::xFlushOutput( PicList* pcListPic )
           else
           {
 #if JVET_N0278_FIXES
-            m_cVideoIOYuvReconFile[pcPic->layerId].write( ptrRtmpWindow, pcPic->getRecoBuf().get( COMPONENT_Y ).width, pcPic->getRecoBuf().get( COMPONENT_Y ).height, pcPic->getRecoBuf(),
+            m_cVideoIOYuvReconFile[pcPic->layerId].write( ptrQRtmpWindow, pcPic->getRecoBuf().get( COMPONENT_Y ).width, pcPic->getRecoBuf().get( COMPONENT_Y ).height, pcPic->getRecoBuf(),
 #else
             m_cVideoIOYuvReconFile.write( pcPic->getRecoBuf().get( COMPONENT_Y ).width, pcPic->getRecoBuf().get( COMPONENT_Y ).height, pcPic->getRecoBuf(),
 #endif

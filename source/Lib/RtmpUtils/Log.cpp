@@ -86,7 +86,7 @@ static void rtmp_log_default( int level, const char *format, va_list vl, int isP
 	{
 		LOG log;
 		log.data = ( char * ) malloc( MAX_PRINT_LEN );
-		log.dataSize = sprintf( log.data, "%s: %s", levels[ level ], str );
+		log.dataSize = sprintf_s( log.data, MAX_PRINT_LEN, "%s: %s", levels[ level ], str );
 		if ( isPrint )
 			printf( "%s\n", log.data );
 		std::unique_lock<std::mutex> lock( mux );
@@ -108,7 +108,7 @@ static unsigned CALLBACK thread_func_for_logger( void * )
 		{
 			LOG log = logQue.front( );
 			logQue.pop( );
-			fprintf( fmsg, "%s\n", log.data );
+			fprintf_s( fmsg, "%s\n", log.data );
 			free( log.data );
 		}
 #ifdef _DEBUG
@@ -289,7 +289,7 @@ void RTMP_LogHexStr( int level, const uint8_t *data, unsigned long len )
 
 	LOG log;
 	log.data = ( char* ) malloc( tmpStr.size( ) + 1 );
-	log.dataSize = sprintf( log.data, "%s", tmpStr.c_str( ) );
+	log.dataSize = sprintf_s( log.data, tmpStr.size() + 1, "%s", tmpStr.c_str( ) );
 	std::unique_lock<std::mutex> lock( mux );
 	logQue.push( log );
 }

@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <Keyword>Qt4VSv1.0</Keyword>
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{7DD4765A-3883-4506-BEE4-4BA5EFE929C2}</ProjectGuid>
     <RootNamespace>RTMPlayer</RootNamespace>
@@ -28,7 +29,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -80,8 +81,8 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\CommonLib\.;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\CommonLib\..;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\CommonLib\.\x86;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\CommonLib\..\libmd5;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\EncoderLib\.;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\DecoderLib\.;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\Utilities\.;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\Utilities\..;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\libevent;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\App;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\build\source\App\RTMPlayer;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\App\RTMPlayer</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;_WINDOWS;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\CommonLib\.;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\CommonLib\..;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\CommonLib\.\x86;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\CommonLib\..\libmd5;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\EncoderLib\.;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\DecoderLib\.;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\Utilities\.;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\Utilities\..;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\Lib\libevent;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\App;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\build\source\App\RTMPlayer;D:\VS Documents\Visual Studio 2010\Projects\VVCSoftware_VTM-VTM-7.1\source\App\RTMPlayer;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;_WINDOWS;CMAKE_INTDIR="Debug";QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>
       </LanguageStandard>
       <ForcedIncludeFiles>
@@ -92,8 +93,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>..\..\..\..\lib\vs15\msvc-19.16\x86_64\debug;..\..\..\..\libevent;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ws2_32.lib;Comctl32.lib;event.lib;CommonLib.lib;EncoderLib.lib;DecoderLib.lib;Utilities.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\..\..\lib\vs15\msvc-19.16\x86_64\debug;..\..\..\..\libevent;$(QTDIR)\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Qt5Cored.lib;ws2_32.lib;Comctl32.lib;event.lib;CommonLib.lib;EncoderLib.lib;DecoderLib.lib;Utilities.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5Widgetsd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -102,9 +103,12 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>Qt5Cored.lib;Qt5Guid.lib;Qt5Widgetsd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -115,11 +119,14 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>Qt5Core.lib;Qt5Gui.lib;Qt5Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -130,11 +137,14 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>Qt5Core.lib;Qt5Gui.lib;Qt5Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -200,4 +210,9 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties Qt5Version_x0020_x64="5.13.2(x64)" />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>

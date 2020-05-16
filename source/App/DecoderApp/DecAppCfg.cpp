@@ -173,14 +173,14 @@ bool DecAppCfg::parseCfg( int argc, char* argv[] )
 
   if ( !cfg_TargetDecLayerIdSetFile.empty() )
   {
-    FILE* targetDecLayerIdSetFile = fopen ( cfg_TargetDecLayerIdSetFile.c_str(), "r" );
+    FILE* targetDecLayerIdSetFile = _fsopen( cfg_TargetDecLayerIdSetFile.c_str(), "r", _SH_DENYNO );
     if ( targetDecLayerIdSetFile )
     {
       bool isLayerIdZeroIncluded = false;
       while ( !feof(targetDecLayerIdSetFile) )
       {
         int layerIdParsed = 0;
-        if ( fscanf( targetDecLayerIdSetFile, "%d ", &layerIdParsed ) != 1 )
+        if ( fscanf_s( targetDecLayerIdSetFile, "%d ", &layerIdParsed ) != 1 )
         {
           if ( m_targetDecLayerIdSet.size() == 0 )
           {

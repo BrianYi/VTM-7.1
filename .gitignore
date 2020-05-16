@@ -1,9 +1,8 @@
 dec.yuv
 rec.yuv
 str.bin
-/build/
-/bin/
-/lib/
+bin/
+lib/
 core
 deploy
 *.sdf
@@ -19,3 +18,7 @@ deploy
 *.exe
 *.vtmbmsstats
 /0110random
+**/Release
+**/Debug
+**/resource
+/build
